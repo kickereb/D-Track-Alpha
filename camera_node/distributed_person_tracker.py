@@ -72,7 +72,7 @@ class DistributedPersonTrackerStateMachine:
     
     def __init__(self, node_id: str, ip: str, routing_table_manager,
                  camera_matrix: np.ndarray, dist_coeffs: np.ndarray,
-                 cycle_time_ms: int = 2000, collection_timeout_ms: int = 1000):
+                 cycle_time_ms: int = 2500, collection_timeout_ms: int = 2000):
         """
         Initialise the state machine
         
@@ -163,6 +163,7 @@ class DistributedPersonTrackerStateMachine:
         and transitions to collection phase
         """
         _log_phase_separator("DETECT")
+        detection_start_time = time.time()*1000
 
         with self.frame_lock:
             self.frame_number += 1
@@ -192,6 +193,8 @@ class DistributedPersonTrackerStateMachine:
             # Broadcast to network
             self._broadcast_detections(local_detections)
             log("Local detections broadcast complete")
+            total_phase_time = time.time()*1000 - detection_start_time
+            log(f"DETECT PHASE took {total_phase_time:3f}ms")
             
             self.state = CycleState.COLLECT
             log(f"Starting collection for frame {current_frame_num}")
@@ -233,13 +236,14 @@ class DistributedPersonTrackerStateMachine:
             # Log collection results
             collection_time = time.time()*1000 - collection_start
             time_since_start = (time.time()*1000 - self.cycle_start_time)
+            cycle_time_left = self.cycle_time - time_since_start
             received = len(self.current_frame.detections)
             total = len(self.routing_table_manager.routing_table)
         
         log(f"\nCollection Results:")
         log(f"✓ Nodes reported: {received}/{total}")
         log(f"✓ Collection time: {collection_time:.3f}ms")
-        log(f"✓ Cycle time used: {time_since_start:.1f}ms")
+        log(f"Cycle time left: {cycle_time_left:.1f}ms")
         
         if time_since_start >= self.collection_timeout:
             log(f"❌ WARNING: Collection timeout reached")
