@@ -1,4 +1,5 @@
 import threading
+import numpy as np
 
 from distributed_person_tracker import DistributedPersonTrackerStateMachine
 from routing_table_manager import RoutingTableManager

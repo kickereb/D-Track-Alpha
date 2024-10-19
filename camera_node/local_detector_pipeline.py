@@ -103,7 +103,7 @@ class PiCamera2Capture(ImageCaptureInterface):
     
     def initialise(self) -> None:
         self.camera = Picamera2()
-        config = self.camera.create_still_configuration(main={"size": (1280, 720)})
+        config = self.camera.create_still_configuration(main={"size": (640, 640)})
         self.camera.configure(config)
         self.camera.start()
         time.sleep(2)  # Warm-up time
@@ -116,11 +116,11 @@ class PiCamera2Capture(ImageCaptureInterface):
 
 from ultralytics import YOLO
 
-class YOLOv8PersonDetector(PersonDetectorInterface):
-    """YOLOv8 implementation of person detection"""
+class YOLOv11NCNNPersonDetector(PersonDetectorInterface):
+    """YOLOv11 nano ncnn implementation of person detection"""
     
     def initialise(self) -> None:
-        self.model = YOLO('yolov8n.pt')
+        self.model = YOLO('./yolo11n_ncnn_model')
     
     def detect(self, image: np.ndarray) -> List[Tuple[BoundingBox, float]]:
         results = self.model(image, classes=[0])  # class 0 is person

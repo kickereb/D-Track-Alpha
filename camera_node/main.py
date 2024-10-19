@@ -1,7 +1,6 @@
 import argparse
 import time
 from camera_node import CameraNode
-from config.camera_config import initialise_camera
 from utils.logger import log
 import numpy as np
 
@@ -61,9 +60,6 @@ def print_calibration_info(camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
     print("=" * 45 + "\n")
 
 def main(node_id, ip, port, neighbors):
-    # Initialise camera
-    camera = initialise_camera()
-    
     # Create and start node
     camera_matrix, dist_coeffs = get_dummy_calibration()
     node = CameraNode(node_id, ip, port, neighbors, camera_matrix, dist_coeffs)
@@ -75,7 +71,6 @@ def main(node_id, ip, port, neighbors):
             time.sleep(1)
     except KeyboardInterrupt:
         node.stop()
-        camera.stop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start a camera node in the network.")

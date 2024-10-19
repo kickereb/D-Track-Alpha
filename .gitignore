@@ -2,3 +2,7 @@ __pycache__
 data
 camera-node-env
 camera-node
+*.pt
+yolo11n_ncnn_model
+*.torchscript
+pnnx-20240819-linux-aarch64

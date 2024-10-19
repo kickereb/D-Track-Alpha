@@ -8,6 +8,7 @@ from enum import Enum, auto
 from collections import defaultdict
 from utils.logger import log
 from local_detector_pipeline import *
+from tqdm import tqdm
 
 # Debug flag to control verbose logging
 DEBUG = True
@@ -28,7 +29,7 @@ class FrameData:
         start_time: Timestamp when frame processing began
     """
     frame_number: int
-    detections: Dict[str, List[Detection]]  # node_id -> detections
+    detections: Dict[str, List[PersonDetection]]  # node_id -> detections
     start_time: float
 
 class CycleState(Enum):
@@ -118,7 +119,7 @@ class DistributedPersonTrackerStateMachine:
         # Initialise detection system
         self.detection_manager = DetectionManager(
             image_capture=PiCamera2Capture(),
-            person_detector=YOLOv8PersonDetector(),
+            person_detector=YOLOv11NCNNPersonDetector(),
             coordinate_transformer=OpenCVCoordinateTransformer()
         )
         self.detection_manager.initialise(camera_matrix, dist_coeffs)
@@ -175,7 +176,7 @@ class DistributedPersonTrackerStateMachine:
             )
             
             # Create and store local detection
-            local_detections = self.detection_manager.detect_people()
+            local_detections = self.detection_manager.detect_people(current_frame_num)
             self.current_frame.detections[self.node_id] = local_detections
             log(f"Created {len(local_detections)} local detections")
             
@@ -209,7 +210,7 @@ class DistributedPersonTrackerStateMachine:
         log(f"Starting collection phase [frame {self.frame_number}]")
 
         collection_start = time.time()*1000
-        time_since_cycle_start = (collection_start - self.cycle_start_time) * 1000
+        time_since_cycle_start = (collection_start - self.cycle_start_time)
         remaining_time_ms = self.collection_timeout - time_since_cycle_start
         
         log(f"Starting collection phase with {remaining_time_ms:.1f}ms")
@@ -276,7 +277,7 @@ class DistributedPersonTrackerStateMachine:
             self.state = CycleState.COMPLETE
             log("Processing phase complete")
 
-    def _broadcast_detections(self, detections: List[Detection]):
+    def _broadcast_detections(self, detections: List[PersonDetection]):
         """Send detections to all other nodes"""
         message = {
             'type': 'detection',
