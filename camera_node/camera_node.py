@@ -10,13 +10,11 @@ from utils.logger import log
 class CameraNode:
     def __init__(self, node_id, ip, port, neighbors, camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
         self.node_id = node_id
-        self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)
-        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(node_id, 
-                                                                                ip, 
-                                                                                self.routing_table_manager, 
-                                                                                camera_matrix, 
-                                                                                dist_coeffs)
-        self.sync_manager = SyncManager(node_id, len(neighbors) + 1)
+        self.ip = ip
+        self.camera_matrix = camera_matrix
+        self.dist_coeffs = dist_coeffs
+        # self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)\
+        self.sync_manager = SyncManager(node_id, ip, port)
         
         # Initialise other attributes
         self.neighbors = neighbors
@@ -33,6 +31,25 @@ class CameraNode:
         if not self.sync_manager.wait_for_sync(timeout=30.0):  # 30 second total timeout
             log(f"Node {self.node_id}: Synchronization timeout")
             return False
+
+        # Get the final list of active nodes
+        active_nodes = self.sync_manager.get_active_nodes()
+        log(f"Node {self.node_id}: Synchronized with nodes: {active_nodes}")
+        
+        # Initialize components with discovered nodes
+        print(active_nodes)
+        exit(0)
+        self.routing_table_manager = RoutingTableManager(
+            self.node_id,
+            self.sync_manager.nodes[self.node_id].ip,
+            self.sync_manager.nodes[self.node_id].port,
+            active_nodes
+        )
+        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(self.node_id, 
+                                                                                self.ip, 
+                                                                                self.routing_table_manager, 
+                                                                                self.camera_matrix, 
+                                                                                self.dist_coeffs)
 
         # Start all necessary tasks a camera node needs to acheive in seperate threads
         self.threads = [
