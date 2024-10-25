@@ -177,24 +177,13 @@ class CameraNode:
             source_node = message['source_node']
             timestamp = message['timestamp']
             detections = message['detections']
-            calibration = message['calibration']
-            
-            # Convert calibration data back to numpy arrays if needed
-            source_camera_matrix = np.array(calibration['camera_matrix'])
-            source_dist_coeffs = np.array(calibration['dist_coeffs'])
-            source_rotation_matrix = np.array(calibration['rotation_matrix'])
-            source_translation_vector = np.array(calibration['translation_vector'])
             
             # Process the detections (implement your processing logic here)
             self.process_detections(
                 detections, 
                 frame_number, 
                 source_node, 
-                timestamp,
-                source_camera_matrix,
-                source_dist_coeffs,
-                source_rotation_matrix,
-                source_translation_vector
+                timestamp
             )
             
             log(f"Received {len(detections)} detections from node {source_node} for frame {frame_number}")
@@ -211,9 +200,7 @@ class CameraNode:
                     self.detection_socket.sendto(json_data.encode(), (next_hop_ip, next_hop_port))
                     log(f"Forwarded detections for frame {message['frame_number']} to node {dest_node} via {next_hop}")
 
-    def process_detections(self, detections, frame_number, source_node, timestamp,
-                         source_camera_matrix, source_dist_coeffs, 
-                         source_rotation_matrix, source_translation_vector):
+    def process_detections(self, detections, frame_number, source_node, timestamp):
         """Process received detections and camera calibration data"""
         # This is where you would implement your detection processing logic
         # For example:
