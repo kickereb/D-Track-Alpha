@@ -21,7 +21,7 @@ def main(node_id, ip, port, neighbors):
     except KeyboardInterrupt:
         log("Main thread interrupted. Shutting down...")
     finally:
-        node.destroy_node()
+        node.stop()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start a camera node in the network.")
