@@ -1,7 +1,7 @@
 // "use client";
-import {Canvas, Path, Skia, vec, Points, Rect } from "@shopify/react-native-skia";
+import {Canvas, Path, Skia, vec, Points, Rect, Text, matchFont } from "@shopify/react-native-skia";
 import React, {useState, useEffect } from "react";
-import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, Platform, Button } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from "@react-navigation/drawer";
 
@@ -20,6 +20,8 @@ const sortData = (dataArr) => {
   return result;
 }
 
+const allowedColors = ["blue", "green", "yellow", "black", "white", "purple", "cyan", "magenta", "lime", "orange"];
+
 const getData = () => {
 
   const [d, setData] = useState('');
@@ -34,41 +36,30 @@ const getData = () => {
   return d;
 }
 
-const renderPath = () => {
-  
-}
-
-const renderPoints = () => {
-
-}
+const paddingX = 10;
+const paddingY = 50;
+var outPath = [];
+var outPoints = [];
 
 function MainScreen() {
-  var outPath = [];
-  var outPoints = [];
-  
-  var allowedColors = ["blue", "green", "yellow", "black", "white", "purple", "cyan", "magenta", "lime", "orange"];
-
-  const d = getData();
+  var d = getData();
 
   var test = scaleData(sortData(d));
 
-  for (let i=0;i<test.length;i++) {
-    const p = drawPath(test[i]);
-    const pts = drawPoints(test[i]);
-
-    outPath.push(
-      <Path path={p} style="stroke" strokeWidth={4} color={allowedColors[i%allowedColors.length]}/>
-    );
-    outPoints.push(
-      <Points points={pts} mode="points" color="red" style="fill" strokeWidth={6}></Points>
-    )
-  }
+  outPath = renderPath(test);
+  outPoints = renderPoints(test);
+  
+  var axis = renderAxis();
+  var ticks = renderTicks();
 
   return (
     <>
       <View style={styles.container}>
-          <Canvas style={{width: cDim.w, height: cDim.h}}>
-            <Rect x={0} y={0} width={cDim.w} height={cDim.h} color="#E1E1E1"></Rect>
+          <Canvas style={{width: cDim.w+offset+50, height: cDim.h+offset+paddingY}}>
+            <Rect x={offset+paddingX} y={paddingY} width={drawDim.w} height={drawDim.h} color="#E1E1E1"></Rect>
+            
+            {axis}
+            {ticks}
             {outPath}
             {outPoints}
             {/* <Path path={p} style="stroke" strokeWidth={4} color="#3EB489"/>
@@ -80,11 +71,13 @@ function MainScreen() {
 }
 
 var dispDim = {w: Dimensions.get("window").width, h: Dimensions.get("window").height};
-const cDim = {w:350, h:500};
+const cDim = {w:350, h:400};
+const offset = 30;
+const drawDim = {w: cDim.w-offset, h: cDim.h-offset}
 
 var definedArea = {w:500, h:500};
-var scaleX = cDim.w/definedArea.w;
-var scaleY = cDim.h/definedArea.h;
+var scaleX = drawDim.w/definedArea.w;
+var scaleY = drawDim.h/definedArea.h;
 
 const scaleData = (dArr) => {
   var temp = dArr;
@@ -98,6 +91,117 @@ const scaleData = (dArr) => {
   }
   return temp;
 }
+
+const drawPath = (dArr) => {
+  const path = Skia.Path.Make();
+  path.moveTo(parseFloat(dArr[0].x)+offset+paddingX,cDim.h-offset+paddingY-parseFloat(dArr[0].y))
+  for (var i=1;i<dArr.length;i++) {
+    path.lineTo(parseFloat(dArr[i].x)+offset+paddingX, cDim.h-offset+paddingY-parseFloat(dArr[i].y));
+  }
+  return path;
+}
+
+const drawPoints = (dArr) => {
+  var points = [];
+  for (var i=0;i<dArr.length;i++) {
+    points.push(vec(parseFloat(dArr[i].x)+offset+paddingX,cDim.h-offset+paddingY-parseFloat(dArr[i].y)));
+  }
+  return points;
+}
+
+const renderAxis = () => {
+
+  const p = Skia.Path.Make();
+  // X Axis
+  p.moveTo(offset+paddingX, cDim.h-offset+paddingY);
+  p.lineTo(cDim.w+paddingX,cDim.h-offset+paddingY);
+  
+  // Y Axis
+  p.moveTo(offset+paddingX, cDim.h-offset+paddingY);
+  p.lineTo(offset+paddingX,0+paddingY);
+
+  return (<Path path = {p} style="stroke" strokeWidth={2} color="black"></Path>)
+}
+
+const renderTicks = () => {
+  var ticks = [];
+  const p = Skia.Path.Make();
+  const fsize = 12;
+  const fontFamily = Platform.select({ default: "serif" });
+
+  const fontStyle = {
+    fontFamily,
+    fontSize: fsize,
+    fontStyle: "normal",
+    fontWeight: "normal",
+  };
+  const font = matchFont(fontStyle);
+
+  const xTicks = 5;
+  const yTicks = 5;
+
+  // const xTicks = parseInt(definedArea.w/100);
+  // const yTicks = parseInt(definedArea.y/100);
+
+  const xDimInc = (drawDim.w/xTicks);
+  const xValueInc = definedArea.w/xTicks;
+  var diff = 0;
+
+  for (var i=0;i<=xTicks;i++) {
+    diff = (xValueInc*i+"").length;
+    
+    // console.log((i*xDimInc)+offset+"")
+    // console.log(diff);
+
+    p.moveTo((i*xDimInc)+offset+paddingX, cDim.h-offset+paddingY);
+    p.lineTo((i*xDimInc)+offset+paddingX, cDim.h-offset+8+paddingY);
+
+    ticks.push(<Text x={(i*xDimInc)+offset+paddingX-(diff*3.3)} y={drawDim.h+20+paddingY} text={xValueInc*i+""} font = {font}></Text>)
+  }
+
+  const yDimInc = (drawDim.h/yTicks);
+  const yValueInc = definedArea.h/yTicks;
+  var counter = 0;
+  for (var i=yTicks;i>=0;i--) {
+    diff = (yValueInc*counter+"").length;
+
+    p.moveTo(offset+paddingX, i*yDimInc+paddingY);
+    p.lineTo(offset+paddingX-8, i*yDimInc+paddingY);
+
+    ticks.push(<Text x={offset+paddingX-(diff*7)-11} y={(i*yDimInc+paddingY+4)} text={yValueInc*counter+""} font = {font}></Text>)
+    counter = counter + 1
+  }
+
+  ticks.push(<Path path = {p} style="stroke" strokeWidth={1} color="black"></Path>)
+  
+  return ticks;
+}
+
+const renderPath = (arr) => {
+  var out = [];
+  for (let i=0;i<arr.length;i++) {
+    const p = drawPath(arr[i]);
+
+    out.push(
+      <Path path={p} style="stroke" strokeWidth={4} color={allowedColors[i%allowedColors.length]}/>
+    );
+  }
+  return out;
+}
+
+const renderPoints = (arr) => {
+  var out = [];
+  for (let i=0;i<arr.length;i++) {
+    const p = drawPoints(arr[i]);
+
+    out.push(
+      <Points points={p} mode="points" color="red" style="fill" strokeWidth={6}></Points>
+    )
+  }
+  return out;
+}
+
+const Drawer = createDrawerNavigator();
 
 function ListItems(props) {
   return (
@@ -114,30 +218,10 @@ function PathList({tracked}) {
       drawerContent={(props) => <ListItems {...props} />}
       
     >
-      <Drawer.Screen name="MainScreen" component={MainScreen} options ={{ drawerItemStyle: { display: 'none'}}} />
+      <Drawer.Screen name="Paths" component={MainScreen} options ={{ drawerItemStyle: { display: 'none'}}} />
     </Drawer.Navigator>
   )
 }
-
-const drawPath = (dArr) => {
-  const path = Skia.Path.Make();
-  path.moveTo(parseFloat(dArr[0].x),cDim.h-parseFloat(dArr[0].y))
-  for (var i=1;i<dArr.length;i++) {
-    path.lineTo(parseFloat(dArr[i].x), cDim.h-parseFloat(dArr[i].y));
-  }
-  return path;
-}
-
-const drawPoints = (dArr) => {
-  var points = [];
-  for (var i=0;i<dArr.length;i++) {
-    points.push(vec(parseFloat(dArr[i].x),cDim.h-parseFloat(dArr[i].y)))
-  }
-  return points;
-}
-
-
-const Drawer = createDrawerNavigator();
 
 export default function App() {
   var bList = [];
