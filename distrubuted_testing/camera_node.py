@@ -53,11 +53,11 @@ class CameraNode:
         self.translation_vector = 0  # 3x1 translation vector
 
         # Create separate sockets for frames and routing
-        self.frame_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.detection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.routing_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         
         # Bind sockets to different ports
-        self.frame_socket.bind((ip, port))
+        self.detection_socket.bind((ip, port))
         self.routing_socket.bind((ip, port + 1))
         
         self.running = True
@@ -274,6 +274,6 @@ class CameraNode:
     def stop(self):
         """Clean shutdown of the node"""
         self.running = False
-        self.frame_socket.close()
+        self.detection_socket.close()
         self.routing_socket.close()
         log(f"Node {self.node_id} shutting down...")
