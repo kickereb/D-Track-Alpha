@@ -11,27 +11,9 @@ def log(message):
     print(f"[{time.strftime('%H:%M:%S')}] {message}")
     sys.stdout.flush()
 
-def user_input_handler(node):
-    while node.running:
-        try:
-            command = input("Enter command: ").strip().lower()
-            log(f"Received command: {command}")
-            node.command_queue.put(command)
-        except EOFError:
-            log("EOFError encountered. Shutting down...")
-            node.stop()
-        except KeyboardInterrupt:
-            log("KeyboardInterrupt encountered. Shutting down...")
-            node.stop()
-
 def main(node_id, ip, port, neighbors):
     node = CameraNode(node_id, ip, port, neighbors)
     node.start()
-    
-    log("Node started. Enter 'print' to show routing table or 'quit' to exit.")
-    
-    input_thread = threading.Thread(target=user_input_handler, args=(node,), daemon=True)
-    input_thread.start()
     
     try:
         while node.running:
@@ -39,9 +21,7 @@ def main(node_id, ip, port, neighbors):
     except KeyboardInterrupt:
         log("Main thread interrupted. Shutting down...")
     finally:
-        node.stop()
-        log("Node shutting down...")
-        node.socket.close()
+        node.destroy_node()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start a camera node in the network.")
