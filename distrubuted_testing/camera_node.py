@@ -64,6 +64,12 @@ class CameraNode:
         self.command_queue = queue.Queue()
         self.max_packet_size = 65507
 
+        # Add detection buffer and tracking
+        self.detection_buffer = {}  # Format: {frame_number: {node_id: detection_data}}
+        self.total_nodes = len(self.routing_table)  # Total number of nodes in network (including self)
+        self.processed_frames = set()  # Keep track of which frames we've already processed
+        self.detection_buffer_lock = threading.Lock()  # Thread safety for buffer access
+
     def start(self):
         # Start separate threads for frame and routing listeners
         threading.Thread(target=self.listen_for_detections, daemon=True).start()
@@ -86,7 +92,7 @@ class CameraNode:
 
     def take_snapshot_of_scene(self):
         self.take_photo()
-        self.detect_people_in_frame()
+        # self.detect_people_in_frame()
         self.send_view_to_all_nodes()
         self.frame_number = self.frame_number + 1
 
@@ -96,27 +102,39 @@ class CameraNode:
         print(f"Photo taken: {filename}")
 
     def send_view_to_all_nodes(self):
-        """Send detection results and camera parameters to all nodes"""
+        """Send detection results to all nodes"""
         # Get detections from the current frame
         detections = self.detect_people_in_frame()
+        current_time = time.time()
         
-        # Convert detections into global world xz coordinates
-        # global_detections = convert_pixel_to_world(detections)
+        # Store our own detections in the buffer
+        with self.detection_buffer_lock:
+            if self.frame_number not in self.detection_buffer:
+                self.detection_buffer[self.frame_number] = {}
+            
+            self.detection_buffer[self.frame_number][self.node_id] = {
+                'detections': detections,
+                'timestamp': current_time
+            }
+            
+            log(f"Stored own detections for frame {self.frame_number}. " +
+                f"Now have {len(self.detection_buffer[self.frame_number])}/{self.total_nodes} nodes")
         
         # Prepare the detection message
         message = {
             'type': 'detection',
             'source_node': self.node_id,
             'frame_number': self.frame_number,
-            'timestamp': time.time(),
-            'detections': detections,
+            'timestamp': current_time,
+            'detections': detections
         }
 
-        # Send to each destination node
-        for dest_node, (dist, next_hop) in self.routing_table.items():
+        # Send to each destination node in routing table
+        for dest_node in self.routing_table:
             if dest_node == self.node_id:
                 continue
                 
+            dist, next_hop = self.routing_table[dest_node]
             if next_hop not in self.neighbors:
                 log(f"Warning: Next hop {next_hop} not found in neighbors list")
                 continue
@@ -139,7 +157,7 @@ class CameraNode:
             {
                 'bbox': [0, 0, 100, 100], # [x, y, width, height]
                 'confidence': 70,
-                'tracking_id': 1 
+                'tracking_id': self.frame_number
             }
         ]
         # Example detection format:
@@ -171,22 +189,29 @@ class CameraNode:
 
     def handle_detection_message(self, message, addr):
         """Handle received detection messages"""
+        frame_number = message['frame_number']
+        source_node = message['source_node']
+        
         # Process detections if we're the destination
         if message['destination_node'] == self.node_id:
-            frame_number = message['frame_number']
-            source_node = message['source_node']
-            timestamp = message['timestamp']
-            detections = message['detections']
-            
-            # Process the detections (implement your processing logic here)
-            self.process_detections(
-                detections, 
-                frame_number, 
-                source_node, 
-                timestamp
-            )
-            
-            log(f"Received {len(detections)} detections from node {source_node} for frame {frame_number}")
+            with self.detection_buffer_lock:
+                # Initialise buffer for this frame if it doesn't exist
+                if frame_number not in self.detection_buffer:
+                    self.detection_buffer[frame_number] = {}
+                
+                # Store the detection in our buffer
+                self.detection_buffer[frame_number][source_node] = {
+                    'detections': message['detections'],
+                    'timestamp': message['timestamp']
+                }
+                
+                # Check if we have all detections for this frame
+                if (len(self.detection_buffer[frame_number]) == self.total_nodes and 
+                    frame_number not in self.processed_frames):
+                    self.process_complete_frame_detection_buffer(frame_number)
+                    
+                log(f"Received detections from node {source_node} for frame {frame_number}. " +
+                    f"Have {len(self.detection_buffer[frame_number])}/{self.total_nodes} nodes")
         
         # Forward detections if we're not the destination
         else:
@@ -198,17 +223,52 @@ class CameraNode:
                     message['next_hop'] = next_hop
                     json_data = json.dumps(message)
                     self.detection_socket.sendto(json_data.encode(), (next_hop_ip, next_hop_port))
-                    log(f"Forwarded detections for frame {message['frame_number']} to node {dest_node} via {next_hop}")
-
-    def process_detections(self, detections, frame_number, source_node, timestamp):
-        """Process received detections and camera calibration data"""
-        # This is where you would implement your detection processing logic
-        # For example:
-        # - Transform detections to world coordinates
-        # - Merge detections from multiple cameras
-        # - Track people across multiple views
-        # - Update global state
-        pass
+                    log(f"Forwarded detections for frame {frame_number} to node {dest_node} via {next_hop}")
+    
+    def process_complete_frame_detection_buffer(self, frame_number):
+        """Process detections once we have them from all nodes"""
+        frame_data = self.detection_buffer[frame_number]
+        
+        # Verify we really have all nodes
+        if len(frame_data) != self.total_nodes:
+            log(f"Warning: Processing frame {frame_number} with incomplete data. " +
+                f"Have {len(frame_data)}/{self.total_nodes} nodes")
+            return
+            
+        # Collect all detections for this frame
+        all_detections = {
+            node_id: data['detections'] 
+            for node_id, data in frame_data.items()
+        }
+        
+        # Get timestamps for synchronization analysis
+        timestamps = {
+            node_id: data['timestamp'] 
+            for node_id, data in frame_data.items()
+        }
+        
+        # Calculate time differences for synchronization analysis
+        base_time = min(timestamps.values())
+        time_offsets = {
+            node_id: timestamp - base_time 
+            for node_id, timestamp in timestamps.items()
+        }
+        
+        log(f"Processing complete frame {frame_number}")
+        log(f"Time offsets between nodes (seconds): {time_offsets}")
+        
+        # Process the complete set of detections
+        self.process_detections(
+            all_detections,
+            frame_number,
+            timestamps
+        )
+        
+        # Mark this frame as processed
+        self.processed_frames.add(frame_number)
+        
+        # Clean up old frames from the buffer
+        self.cleanup_old_frames(frame_number)
 
     def listen_for_routing_updates(self):
         """Dedicated thread for handling routing table updates"""
@@ -250,6 +310,7 @@ class CameraNode:
                     self.routing_table[dest] = (dist + 1, next(iter(neighbor_table)))
                     updated = True
             if updated:
+                self.total_nodes = len(self.routing_table)
                 log(f"Node {self.node_id} updated routing table:")
                 self.print_routing_table()
 
