@@ -228,13 +228,10 @@ class DistributedPersonTrackerStateMachine:
         remaining_time = remaining_time_ms
         
         with self.routing_table_manager.lock:
-            print("here 1")
             # Collection loop with hard cutoff
             while (time.time()*1000 - self.cycle_start_time < self.collection_timeout and  # Hard cutoff
                 time.time()*1000 - collection_start < remaining_time and  # Remaining time
                 not self._check_frame_complete()):  # Completion check
-                print(time.time()*1000 - self.cycle_start_time, self.collection_timeout)
-                print(time.time()*1000 - collection_start,remaining_time )
                 print(self._check_frame_complete())
                 time.sleep(0.001)  # Small sleep to prevent CPU spinning
                 
