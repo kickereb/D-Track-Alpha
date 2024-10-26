@@ -5,8 +5,7 @@ import json
 from utils.logger import log
 
 class DistributedPersonTracker:
-    def __init__(self, node_id, ip, port):
-        self.port = port
+    def __init__(self, node_id, ip, routing_table_manager):
         self.detection_buffer = {}
         self.processed_frames = set()
         self.detection_buffer_lock = threading.Lock()
@@ -14,16 +13,23 @@ class DistributedPersonTracker:
         self.frame_process_condition = threading.Condition()
 
         self.detection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.detection_socket.bind((ip, port))
+        self.detection_socket.bind((ip, routing_table_manager.port))
 
         self.running = True
+
+        self.frame_number = 0
+        self.node_id = node_id
+        self.routing_table_manager = routing_table_manager
+        
+        # Add frame number lock to prevent race conditions
+        self.frame_number_lock = threading.Lock()
 
     def start(self):
         self.threads = [
             # A camera node also needs to passively listen for detections sent for a given frame from another node.
             threading.Thread(target=self.listen_for_detections, daemon=True),
-            # Another thread is needed for when a frame is filled with detections from all available camera nodes.
-            # threading.Thread(target=self.process_frames_continuously, daemon=True),
+            # Periodically send our detections to other nodes
+            threading.Thread(target=self.periodic_detection_sender, daemon=True),
         ]
         
         for thread in self.threads:
@@ -45,6 +51,90 @@ class DistributedPersonTracker:
                 log(f"Error decoding detection message: {e}")
             except Exception as e:
                 log(f"Error in detection listener: {e}")
+
+    def periodic_detection_sender(self):
+        """Send local detections to all other nodes every 500ms"""
+        while self.running:
+            try:
+                # Get current frame number atomically
+                with self.frame_number_lock:
+                    current_frame = self.frame_number
+                    self.frame_number += 1
+
+                # Get detections for current frame
+                detections = self.detect_people_in_frame()
+                current_time = time.time()
+                
+                # Store our own detections in the buffer
+                with self.detection_buffer_lock:
+                    if current_frame not in self.detection_buffer:
+                        self.detection_buffer[current_frame] = {}
+                    
+                    self.detection_buffer[current_frame][self.node_id] = {
+                        'detections': detections,
+                        'timestamp': current_time
+                    }
+                
+                # Prepare the detection message
+                message = {
+                    'type': 'detection',
+                    'source_node': self.node_id,
+                    'frame_number': current_frame,
+                    'timestamp': current_time,
+                    'detections': detections
+                }
+
+                # Send to each destination node in routing table
+                self.broadcast_detections(message)
+                
+                # Wait for next detection cycle
+                time.sleep(2)  # 500ms interval
+                
+            except Exception as e:
+                log(f"Error in detection sender: {e}")
+                time.sleep(2)  # Still wait on error
+
+    def broadcast_detections(self, message):
+        """Send detection message to all nodes in routing table"""
+        for dest_node in self.routing_table_manager.routing_table:
+            if dest_node == self.node_id:
+                continue
+                
+            dist, next_hop = self.routing_table_manager.routing_table[dest_node]
+            if next_hop not in self.routing_table_manager.neighbors:
+                log(f"Warning: Next hop {next_hop} not found in neighbors list")
+                continue
+                
+            next_hop_ip, next_hop_port = self.routing_table_manager.neighbors[next_hop]
+            message['destination_node'] = dest_node
+            message['next_hop'] = next_hop
+            
+            try:
+                json_data = json.dumps(message)
+                self.detection_socket.sendto(json_data.encode(), (next_hop_ip, next_hop_port))
+                log(f"Sent detections for frame {message['frame_number']} to node {dest_node} via {next_hop}")
+            except Exception as e:
+                log(f"Error sending detections to node {dest_node}: {e}")
+
+    def process_detections(self, all_detections, frame_number, timestamps):
+        """Process the complete set of detections from all nodes"""
+        try:
+            log(f"Processing detections for frame {frame_number}")
+            log(f"Detections from nodes: {list(all_detections.keys())}")
+            
+            # Process each node's detections
+            for node_id, detections in all_detections.items():
+                log(f"Node {node_id}: {len(detections)} detections at time {timestamps[node_id]}")
+                for detection in detections:
+                    log(f"  Detection: bbox={detection['bbox']}, confidence={detection['confidence']}")
+            
+            # TODO: Implement actual detection processing
+            # - Combine detections from multiple views
+            # - Apply clustering algorithm
+            # - Update tracking information
+            
+        except Exception as e:
+            log(f"Error processing detections for frame {frame_number}: {e}")
 
     def handle_detection_message(self, message, addr):
         """Handle received detection messages"""
@@ -75,10 +165,10 @@ class DistributedPersonTracker:
         # Forward detections if we're not the destination
         else:
             dest_node = message['destination_node']
-            if dest_node in self.routing_table:
-                _, next_hop = self.routing_table[dest_node]
-                if next_hop in self.neighbors:
-                    next_hop_ip, next_hop_port = self.neighbors[next_hop]
+            if dest_node in self.routing_table_manager.routing_table:
+                _, next_hop = self.routing_table_manager.routing_table[dest_node]
+                if next_hop in self.routing_table_manager.neighbors:
+                    next_hop_ip, next_hop_port = self.routing_table_manager.neighbors[next_hop]
                     message['next_hop'] = next_hop
                     json_data = json.dumps(message)
                     self.detection_socket.sendto(json_data.encode(), (next_hop_ip, next_hop_port))
@@ -86,14 +176,6 @@ class DistributedPersonTracker:
     
     def detect_people_in_frame(self):
         """Detect people in the current frame and return their bounding boxes"""
-        # This is a placeholder
-        detections = [
-            {
-                'bbox': [0, 0, 100, 100], # [x, y, width, height]
-                'confidence': 70,
-                'tracking_id': self.frame_number
-            }
-        ]
         # Example detection format:
         # detections = [
         #     {
@@ -102,6 +184,15 @@ class DistributedPersonTracker:
         #         'tracking_id': unique_id 
         #     }
         # ]
+        # This is a placeholder
+        detections = [
+            {
+                'bbox': [0, 0, 100, 100], # [x, y, width, height]
+                'confidence': 70,
+                'tracking_id': self.frame_number
+            }
+        ]
+        # TODO: convert pixel coordinates to world coordinates
         return detections
 
     def process_complete_frame_detection_buffer(self, frame_number):

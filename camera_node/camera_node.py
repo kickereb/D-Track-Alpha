@@ -9,8 +9,8 @@ from utils.logger import log
 class CameraNode:
     def __init__(self, node_id, ip, port, neighbors):
         self.node_id = node_id
-        self.distributed_person_tracker = DistributedPersonTracker(node_id, ip, port)
         self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)
+        self.distributed_person_tracker = DistributedPersonTracker(node_id, ip, self.routing_table_manager)
         # self.sync_manager = SyncManager(self.network_manager, len(neighbors) + 1)
 
         # Camera calibration parameters
