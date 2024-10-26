@@ -232,7 +232,6 @@ class DistributedPersonTrackerStateMachine:
             while (time.time()*1000 - self.cycle_start_time < self.collection_timeout and  # Hard cutoff
                 time.time()*1000 - collection_start < remaining_time and  # Remaining time
                 not self._check_frame_complete()):  # Completion check
-                print(self._check_frame_complete())
                 time.sleep(0.001)  # Small sleep to prevent CPU spinning
                 
             # Log collection results
