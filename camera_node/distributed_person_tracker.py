@@ -7,6 +7,7 @@ import json
 from enum import Enum, auto
 from collections import defaultdict
 from utils.logger import log
+from local_detector_pipeline import *
 
 # Debug flag to control verbose logging
 DEBUG = True
@@ -15,20 +16,6 @@ def _log_phase_separator(phase: str):
     """Helper function to create visually distinct phase separators in logs"""
     separator = "-" * 20
     log(f"\n{separator} {phase} PHASE {separator}")
-
-@dataclass
-class Detection:
-    """
-    Represents a single object detection in a frame
-    
-    Attributes:
-        bbox: Bounding box coordinates [x1, y1, x2, y2]
-        confidence: Detection confidence score (0-1)
-        tracking_id: Unique identifier for tracking the object across frames
-    """
-    bbox: List[float]
-    confidence: float
-    tracking_id: int
 
 @dataclass
 class FrameData:
@@ -82,9 +69,9 @@ class DistributedPersonTrackerStateMachine:
     node made into a global view given past tracks.
     """
     
-    def __init__(self, node_id: str, ip: str, routing_table_manager, 
-                 cycle_time_ms: int = 10000, 
-                 collection_timeout_ms: int = 5000):
+    def __init__(self, node_id: str, ip: str, routing_table_manager,
+                 camera_matrix: np.ndarray, dist_coeffs: np.ndarray,
+                 cycle_time_ms: int = 2000, collection_timeout_ms: int = 1000):
         """
         Initialise the state machine
         
@@ -127,6 +114,14 @@ class DistributedPersonTrackerStateMachine:
         self.listener_thread = threading.Thread(target=self._continuous_listener, daemon=True)
         self.listener_thread.start()
         log(f"DistributedPersonTrackerStateMachine initialised for node {node_id}")
+
+        # Initialise detection system
+        self.detection_manager = DetectionManager(
+            image_capture=PiCamera2Capture(),
+            person_detector=YOLOv8PersonDetector(),
+            coordinate_transformer=OpenCVCoordinateTransformer()
+        )
+        self.detection_manager.initialise(camera_matrix, dist_coeffs)
 
     def run_cycle_indefintely(self):
         """Main cycle loop with strict timing controls"""
@@ -180,7 +175,7 @@ class DistributedPersonTrackerStateMachine:
             )
             
             # Create and store local detection
-            local_detections = self._create_local_detection()
+            local_detections = self.detection_manager.detect_people()
             self.current_frame.detections[self.node_id] = local_detections
             log(f"Created {len(local_detections)} local detections")
             
@@ -280,14 +275,6 @@ class DistributedPersonTrackerStateMachine:
             self.current_frame = None
             self.state = CycleState.COMPLETE
             log("Processing phase complete")
-
-    def _create_local_detection(self) -> List[Detection]:
-        """Create detection for current frame"""
-        return [Detection(
-            bbox=[0, 0, 100, 100],  # Placeholder detection
-            confidence=70,
-            tracking_id=self.frame_number
-        )]
 
     def _broadcast_detections(self, detections: List[Detection]):
         """Send detections to all other nodes"""

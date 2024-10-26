@@ -7,18 +7,15 @@ from syncronisation_manager import SyncManager
 from utils.logger import log
 
 class CameraNode:
-    def __init__(self, node_id, ip, port, neighbors):
+    def __init__(self, node_id, ip, port, neighbors, camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
         self.node_id = node_id
         self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)
-        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(node_id, ip, self.routing_table_manager)
+        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(node_id, 
+                                                                                ip, 
+                                                                                self.routing_table_manager, 
+                                                                                camera_matrix, 
+                                                                                dist_coeffs)
         # self.sync_manager = SyncManager(self.network_manager, len(neighbors) + 1)
-
-        # Camera calibration parameters
-        # TODO: Initialise matricies properly
-        self.camera_matrix = 0  # 3x3 intrinsic matrix
-        self.dist_coeffs = 0      # Distortion coefficients
-        self.rotation_matrix = 0  # 3x3 rotation matrix (world to camera)
-        self.translation_vector = 0  # 3x1 translation vector
         
         # Initialise other attributes
         self.neighbors = neighbors
