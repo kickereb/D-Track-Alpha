@@ -1,295 +1,387 @@
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 import threading
 import time
 import socket
 import json
+from enum import Enum, auto
+from collections import defaultdict
 from utils.logger import log
 
-class DistributedPersonTracker:
-    def __init__(self, node_id, ip, routing_table_manager):
-        self.detection_buffer = {}
-        self.processed_frames = set()
-        self.detection_buffer_lock = threading.Lock()
-        self.latest_processed_frame = 0
-        self.frame_process_condition = threading.Condition()
+# Debug flag to control verbose logging
+DEBUG = True
 
-        self.detection_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.detection_socket.bind((ip, routing_table_manager.port))
+def _log_phase_separator(phase: str):
+    """Helper function to create visually distinct phase separators in logs"""
+    separator = "-" * 20
+    log(f"\n{separator} {phase} PHASE {separator}")
 
-        self.running = True
+@dataclass
+class Detection:
+    """
+    Represents a single object detection in a frame
+    
+    Attributes:
+        bbox: Bounding box coordinates [x1, y1, x2, y2]
+        confidence: Detection confidence score (0-1)
+        tracking_id: Unique identifier for tracking the object across frames
+    """
+    bbox: List[float]
+    confidence: float
+    tracking_id: int
 
-        self.frame_number = 0
+@dataclass
+class FrameData:
+    """
+    Contains all detection data for a single frame across all nodes
+    
+    Attributes:
+        frame_number: Sequential identifier for the frame
+        detections: Dictionary mapping node IDs to their respective detections
+        start_time: Timestamp when frame processing began
+    """
+    frame_number: int
+    detections: Dict[str, List[Detection]]  # node_id -> detections
+    start_time: float
+
+class CycleState(Enum):
+    """
+    Represents the different states in the frame processing cycle
+    
+    States:
+        DETECT: Local detection creation and broadcasting
+        COLLECT: Gathering detections from other nodes
+        PROCESS: Processing all collected detections
+    """
+    DETECT = auto()
+    COLLECT = auto()
+    PROCESS = auto()
+    COMPLETE = auto()
+
+class DistributedPersonTrackerStateMachine:
+    """
+    Manages the distributed frame processing cycle across multiple nodes
+    
+    This class handles the synchronisation and processing of object detections
+    across a network of nodes, maintaining temporal consistency and managing
+    the collection and fusion of distributed detection data.
+
+    The following phases of this state machine are as follows:
+    
+    DETECT PHASE - This phase will be the local detection of people within a frame.
+    A node will take an image, run a person detection algorithm and finally convert 
+    the bbox to world coordinates via camera matricies.
+
+    COLLECT PHASE - Despite passively listening regardless of what state we are in,
+    we still enter a collect phase waiting as long as possible until it
+    receives as many local detections from the other nodes as possible until a 
+    threshold time. Depending on what comes first (all detections or threshold),
+    a node will then enter the PROCESS PHASE.
+
+    PROCESS PHASE - This is where a node can start to fuse the local detections each
+    node made into a global view given past tracks.
+    """
+    
+    def __init__(self, node_id: str, ip: str, routing_table_manager, 
+                 cycle_time_ms: int = 2000, 
+                 collection_timeout_ms: int = 1000):
+        """
+        Initialise the state machine
+        
+        Args:
+            node_id: Unique identifier for this node
+            ip: IP address to bind the socket to
+            routing_table_manager: Manager object for network routing
+            cycle_time_ms: Total time allowed for one complete cycle
+            collection_timeout_ms: Maximum time to wait for incoming detections
+        """
         self.node_id = node_id
         self.routing_table_manager = routing_table_manager
+        self.cycle_time = cycle_time_ms
+        self.collection_timeout = collection_timeout_ms
         
-        # Add frame number lock to prevent race conditions
-        self.frame_number_lock = threading.Lock()
-
-    def start(self):
-        self.threads = [
-            # A camera node also needs to passively listen for detections sent for a given frame from another node.
-            threading.Thread(target=self.listen_for_detections, daemon=True),
-            # Periodically send our detections to other nodes
-            threading.Thread(target=self.periodic_detection_sender, daemon=True),
-        ]
+        log(f"Initialising DistributedPersonTrackerStateMachine for node {node_id}")
+        log(f"Cycle time: {self.cycle_time}ms, Collection timeout: {self.collection_timeout}ms")
         
-        for thread in self.threads:
-            thread.start()
+        # Network setup
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.bind((ip, routing_table_manager.port))
+        self.socket.settimeout(0.01)
+        log(f"Socket bound to {ip}:{routing_table_manager.port}")
+        
+        # Frame management
+        self.frame_number = 0
+        self.current_frame: Optional[FrameData] = None
+        self.frame_lock = threading.Lock()
+        self.cycle_start_time = 0.0
+        
+        # Early detection buffer
+        self.early_detections = defaultdict(dict)
+        self.early_detections_lock = threading.Lock()
+        
+        # State management
+        self.state = CycleState.DETECT
+        self.running = True
+        
+        # Start background listener
+        self.listener_thread = threading.Thread(target=self._continuous_listener, daemon=True)
+        self.listener_thread.start()
+        log(f"DistributedPersonTrackerStateMachine initialised for node {node_id}")
 
-    def listen_for_detections(self):
-        """Dedicated thread for handling incoming detection messages"""
-        self.detection_socket.settimeout(1.0)
+    def run_cycle_indefintely(self):
+        """Main cycle loop with strict timing controls"""
+        log("Starting frame processing cycle")
         while self.running:
+            self.cycle_start_time = time.time()
+            log(f"\n=================== NEW CYCLE {self.frame_number + 1} ===================")
+            log(f"Cycle started at {time.strftime('%H:%M:%S', time.localtime(self.cycle_start_time))}")
+        
+            
             try:
-                data, addr = self.detection_socket.recvfrom(4096)  # Smaller buffer size needed
-                message = json.loads(data.decode())
+                while self.state != CycleState.COMPLETE:
+                    if self.state == CycleState.DETECT: 
+                        self._handle_detection_phase()
+                    elif self.state == CycleState.COLLECT:
+                        self._handle_collection_phase()
+                    elif self.state == CycleState.PROCESS:
+                        self._handle_processing_phase()
                 
-                if message.get('type') == 'detection':
-                    self.handle_detection_message(message, addr)
-            except socket.timeout:
-                continue
-            except json.JSONDecodeError as e:
-                log(f"Error decoding detection message: {e}")
-            except Exception as e:
-                log(f"Error in detection listener: {e}")
+                # Set state machine back to first phase
+                self.state = CycleState.DETECT
 
-    def periodic_detection_sender(self):
-        """Send local detections to all other nodes every 500ms"""
-        while self.running:
-            try:
-                # Get current frame number atomically
-                with self.frame_number_lock:
-                    current_frame = self.frame_number
-                    self.frame_number += 1
-
-                # Get detections for current frame
-                detections = self.detect_people_in_frame()
-                current_time = time.time()
-                
-                # Store our own detections in the buffer
-                with self.detection_buffer_lock:
-                    if current_frame not in self.detection_buffer:
-                        self.detection_buffer[current_frame] = {}
-                    
-                    self.detection_buffer[current_frame][self.node_id] = {
-                        'detections': detections,
-                        'timestamp': current_time
-                    }
-                
-                # Prepare the detection message
-                message = {
-                    'type': 'detection',
-                    'source_node': self.node_id,
-                    'frame_number': current_frame,
-                    'timestamp': current_time,
-                    'detections': detections
-                }
-
-                # Send to each destination node in routing table
-                self.broadcast_detections(message)
-                
-                # Wait for next detection cycle
-                time.sleep(2)  # 500ms interval
+                # Try to maintain cycle timing
+                elapsed = time.time() - self.cycle_start_time
+                if elapsed < self.cycle_time:
+                    sleep_time = self.cycle_time - elapsed
+                    log(f"Cycle completed early, sleeping for {sleep_time:.3f}ms\n\n")
+                    time.sleep(sleep_time / 1000) # time.sleep() works in seconds
+                else:
+                    log(f"WARNING: Cycle exceeded target time by {elapsed - self.cycle_time:.3f}ms\n\n")
                 
             except Exception as e:
-                log(f"Error in detection sender: {e}")
-                time.sleep(2)  # Still wait on error
+                log(f"Error in cycle: {e}")
 
-    def broadcast_detections(self, message):
-        """Send detection message to all nodes in routing table"""
+    def _handle_detection_phase(self):
+        """
+        Creates and broadcasts local detections, initialises new frame data,
+        and transitions to collection phase
+        """
+        _log_phase_separator("DETECT")
+
+        with self.frame_lock:
+            self.frame_number += 1
+            current_frame_num = self.frame_number
+            log(f"Starting detection phase [frame {current_frame_num}]")
+            
+            self.current_frame = FrameData(
+                frame_number=current_frame_num,
+                detections={},
+                start_time=time.time()
+            )
+            
+            # Create and store local detection
+            local_detections = self._create_local_detection()
+            self.current_frame.detections[self.node_id] = local_detections
+            log(f"Created {len(local_detections)} local detections")
+            
+            # Process any early detections
+            with self.early_detections_lock:
+                if current_frame_num in self.early_detections:
+                    early_count = len(self.early_detections[current_frame_num])
+                    log(f"Processing {early_count} early detections")
+                    for node_id, detections in self.early_detections[current_frame_num].items():
+                        self.current_frame.detections[node_id] = detections
+                    del self.early_detections[current_frame_num]
+            
+            # Broadcast to network
+            self._broadcast_detections(local_detections)
+            log("Local detections broadcast complete")
+            
+            self.state = CycleState.COLLECT
+            log(f"Starting collection for frame {current_frame_num}")
+
+    def _handle_collection_phase(self):
+        """
+        Collects detections with a hard cutoff at collection_timeout past cycle start
+        """
+        _log_phase_separator("COLLECT")
+
+        if not self.current_frame:
+            log("No current frame, reverting to DETECT state")
+            self.state = CycleState.DETECT
+            return
+        
+        log(f"Starting collection phase [frame {self.frame_number}]")
+
+        collection_start = time.time()
+        time_since_cycle_start = (collection_start - self.cycle_start_time) * 1000
+        remaining_time_ms = self.collection_timeout - time_since_cycle_start
+        
+        log(f"Starting collection phase with {remaining_time_ms:.1f}ms")
+        
+        if remaining_time_ms <= 0:
+            log("WARNING: Hard cutoff already exceeded before collection started")
+            self.state = CycleState.PROCESS
+            return
+        
+        # Convert remaining time to seconds for sleep operations
+        remaining_time = remaining_time_ms
+        
+        # Collection loop with hard cutoff
+        while (time.time() - self.cycle_start_time < self.collection_timeout and  # Hard cutoff
+               time.time() - collection_start < remaining_time and  # Remaining time
+               not self._check_frame_complete()):  # Completion check
+            time.sleep(0.001)  # Small sleep to prevent CPU spinning
+            
+        # Log collection results
+        collection_time = time.time() - collection_start
+        time_since_start = (time.time() - self.cycle_start_time) * 1000
+        received = len(self.current_frame.detections)
+        total = len(self.routing_table_manager.routing_table)
+        
+        log(f"\nCollection Results:")
+        log(f"✓ Nodes reported: {received}/{total}")
+        log(f"✓ Collection time: {collection_time:.3f}ms")
+        log(f"✓ Cycle time used: {time_since_start:.1f}ms")
+        
+        if time_since_start >= self.collection_timeout:
+            log(f"❌ WARNING: Collection timeout reached")
+        
+        self.state = CycleState.PROCESS
+
+    def _handle_processing_phase(self):
+        """
+        Processes all collected detections to create a global view,
+        performs cleanup, and prepares for next cycle
+        """
+        _log_phase_separator("PROCESS")
+        
+        log(f"Starting processing phase [frame {self.frame_number}]")
+        if self.current_frame:
+            received_nodes = len(self.current_frame.detections)
+            total_nodes = len(self.routing_table_manager.routing_table)
+            
+            log(f"Processing frame {self.frame_number} with {received_nodes}/{total_nodes} nodes")
+            
+            # Process detections
+            process_start = time.time()
+            self._process_frame(self.current_frame)
+            log(f"Frame processing took {time.time() - process_start:.3f}ms")
+            
+            # Cleanup old frame data
+            with self.early_detections_lock:
+                old_frames = [f for f in self.early_detections.keys() if f <= self.frame_number]
+                if old_frames:
+                    log(f"Cleaning up {len(old_frames)} old frames from buffer")
+                for frame in old_frames:
+                    del self.early_detections[frame]
+            
+            self.current_frame = None
+            self.state = CycleState.COMPLETE
+            log("Processing phase complete")
+
+    def _create_local_detection(self) -> List[Detection]:
+        """Create detection for current frame"""
+        return [Detection(
+            bbox=[0, 0, 100, 100],  # Placeholder detection
+            confidence=70,
+            tracking_id=self.frame_number
+        )]
+
+    def _broadcast_detections(self, detections: List[Detection]):
+        """Send detections to all other nodes"""
+        message = {
+            'type': 'detection',
+            'frame_number': self.frame_number,
+            'source_node': self.node_id,
+            'timestamp': time.time(),
+            'detections': [d.__dict__ for d in detections]
+        }
+
         for dest_node in self.routing_table_manager.routing_table:
             if dest_node == self.node_id:
                 continue
                 
             dist, next_hop = self.routing_table_manager.routing_table[dest_node]
-            if next_hop not in self.routing_table_manager.neighbors:
-                log(f"Warning: Next hop {next_hop} not found in neighbors list")
-                continue
-                
-            next_hop_ip, next_hop_port = self.routing_table_manager.neighbors[next_hop]
-            message['destination_node'] = dest_node
-            message['next_hop'] = next_hop
+            if next_hop in self.routing_table_manager.neighbors:
+                next_hop_ip, next_hop_port = self.routing_table_manager.neighbors[next_hop]
+                try:
+                    msg_data = json.dumps(message).encode()
+                    self.socket.sendto(msg_data, (next_hop_ip, next_hop_port))
+                except Exception as e:
+                    log(f"Error sending to {dest_node}: {e}")
+
+    def _check_frame_complete(self) -> bool:
+        """Check if we have detections from all nodes"""
+        if not self.current_frame:
+            return False
             
+        return len(self.current_frame.detections) == len(self.routing_table_manager.routing_table)
+
+    def _process_frame(self, frame: FrameData):
+        """Process all detections to create global view"""
+        # TODO: Implement global view creation logic here
+        for node_id, detections in frame.detections.items():
+            for detection in detections:
+                log(f"Node {node_id} detection: {detection}")
+
+
+    def _continuous_listener(self):
+        """
+        Background thread that continuously listens for incoming detection messages.
+        Handles message parsing and routing to appropriate handlers.
+        """
+        log("Starting continuous listener thread")
+        while self.running:
             try:
-                json_data = json.dumps(message)
-                self.detection_socket.sendto(json_data.encode(), (next_hop_ip, next_hop_port))
-                log(f"Sent detections for frame {message['frame_number']} to node {dest_node} via {next_hop}")
-            except Exception as e:
-                log(f"Error sending detections to node {dest_node}: {e}")
-
-    def process_detections(self, all_detections, frame_number, timestamps):
-        """Process the complete set of detections from all nodes"""
-        try:
-            log(f"Processing detections for frame {frame_number}")
-            log(f"Detections from nodes: {list(all_detections.keys())}")
-            
-            # Process each node's detections
-            for node_id, detections in all_detections.items():
-                log(f"Node {node_id}: {len(detections)} detections at time {timestamps[node_id]}")
-                for detection in detections:
-                    log(f"  Detection: bbox={detection['bbox']}, confidence={detection['confidence']}")
-            
-            # TODO: Implement actual detection processing
-            # - Combine detections from multiple views
-            # - Apply clustering algorithm
-            # - Update tracking information
-            
-        except Exception as e:
-            log(f"Error processing detections for frame {frame_number}: {e}")
-
-    def handle_detection_message(self, message, addr):
-        """Handle received detection messages"""
-        frame_number = message['frame_number']
-        source_node = message['source_node']
-        
-        # Process detections if we're the destination
-        if message['destination_node'] == self.node_id:
-            with self.detection_buffer_lock:
-                # Initialise buffer for this frame if it doesn't exist
-                if frame_number not in self.detection_buffer:
-                    self.detection_buffer[frame_number] = {}
+                data, addr = self.socket.recvfrom(4096)
+                message = json.loads(data.decode())
                 
-                # Store the detection in our buffer
-                self.detection_buffer[frame_number][source_node] = {
-                    'detections': message['detections'],
-                    'timestamp': message['timestamp']
-                }
-                
-                # Check if we have all detections for this frame
-                if (len(self.detection_buffer[frame_number]) == self.total_nodes and 
-                    frame_number not in self.processed_frames):
-                    self.process_complete_frame_detection_buffer(frame_number)
+                if message['type'] == 'detection':
+                    log(f"Received detection message from {addr}")
+                    self._handle_incoming_detection(message)
                     
-                log(f"Received detections from node {source_node} for frame {frame_number}. " +
-                    f"Have {len(self.detection_buffer[frame_number])}/{self.total_nodes} nodes")
-        
-        # Forward detections if we're not the destination
-        else:
-            dest_node = message['destination_node']
-            if dest_node in self.routing_table_manager.routing_table:
-                _, next_hop = self.routing_table_manager.routing_table[dest_node]
-                if next_hop in self.routing_table_manager.neighbors:
-                    next_hop_ip, next_hop_port = self.routing_table_manager.neighbors[next_hop]
-                    message['next_hop'] = next_hop
-                    json_data = json.dumps(message)
-                    self.detection_socket.sendto(json_data.encode(), (next_hop_ip, next_hop_port))
-                    log(f"Forwarded detections for frame {frame_number} to node {dest_node} via {next_hop}")
-    
-    def detect_people_in_frame(self):
-        """Detect people in the current frame and return their bounding boxes"""
-        # Example detection format:
-        # detections = [
-        #     {
-        #         'bbox': [x, y, width, height],
-        #         'confidence': confidence_score,
-        #         'tracking_id': unique_id 
-        #     }
-        # ]
-        # This is a placeholder
-        detections = [
-            {
-                'bbox': [0, 0, 100, 100], # [x, y, width, height]
-                'confidence': 70,
-                'tracking_id': self.frame_number
-            }
-        ]
-        # TODO: convert pixel coordinates to world coordinates
-        return detections
+            except socket.timeout:
+                continue
+            except json.JSONDecodeError as e:
+                log(f"Error decoding message: {e}")
+            except Exception as e:
+                log(f"Error in listener: {e}")
+        log("Continuous listener thread stopped")
 
-    def process_complete_frame_detection_buffer(self, frame_number):
-        """Process detections once we have them from all nodes"""
-        frame_data = self.detection_buffer[frame_number]
+    def _handle_incoming_detection(self, message: dict):
+        """
+        Process an incoming detection message and store it appropriately
         
-        # Verify we really have all nodes
-        if len(frame_data) != self.total_nodes:
-            log(f"Warning: Processing frame {frame_number} with incomplete data. " +
-                f"Have {len(frame_data)}/{self.total_nodes} nodes")
-            return
-            
-        # Collect all detections for this frame
-        all_detections = {
-            node_id: data['detections'] 
-            for node_id, data in frame_data.items()
-        }
+        Args:
+            message: Dictionary containing detection data and metadata
+        """
+        received_frame = message['frame_number']
+        source_node = message['source_node']
+        detections = [Detection(**d) for d in message['detections']]
         
-        # Get timestamps for synchronization analysis
-        timestamps = {
-            node_id: data['timestamp'] 
-            for node_id, data in frame_data.items()
-        }
+        log(f"Processing detection from node {source_node} for frame {received_frame}")
         
-        # Calculate time differences for synchronisation analysis
-        base_time = min(timestamps.values())
-        time_offsets = {
-            node_id: timestamp - base_time 
-            for node_id, timestamp in timestamps.items()
-        }
-        
-        log(f"Processing complete frame {frame_number}")
-        log(f"Time offsets between nodes (seconds): {time_offsets}")
-        
-        # Process the complete set of detections
-        self.process_detections(
-            all_detections,
-            frame_number,
-            timestamps
-        )
-        
-        # Mark this frame as processed
-        self.processed_frames.add(frame_number)
-        
-        # Clean up old frames from the buffer
-        self.cleanup_old_frames(frame_number)
+        with self.frame_lock:
+            current_frame_num = self.frame_number
 
-
-    def is_frame_complete(self, frame_number, total_nodes):
-        return (frame_number not in self.processed_frames and 
-                len(self.detection_buffer.get(frame_number, {})) == total_nodes)
-
-    def store_detection(self, frame_number, node_id, detections, timestamp):
-        with self.detection_buffer_lock:
-            if frame_number not in self.detection_buffer:
-                self.detection_buffer[frame_number] = {}
-            
-            self.detection_buffer[frame_number][node_id] = {
-                'detections': detections,
-                'timestamp': timestamp
-            }
-
-    def process_complete_frame(self, frame_number, process_callback):
-        with self.detection_buffer_lock:
-            if frame_number in self.processed_frames:
-                return
-
-            frame_data = self.detection_buffer[frame_number]
-            process_callback(frame_data, frame_number)
-            
-            self.processed_frames.add(frame_number)
-            self.latest_processed_frame = max(self.latest_processed_frame, frame_number)
-            self.cleanup_old_frames()
-
-    def cleanup_old_frames(self, buffer_size=30):
-        with self.detection_buffer_lock:
-            cutoff_frame = self.latest_processed_frame - buffer_size
-            frames_to_remove = [
-                frame for frame in self.detection_buffer.keys()
-                if frame < cutoff_frame
-            ]
-            
-            for frame in frames_to_remove:
-                del self.detection_buffer[frame]
-                if frame in self.processed_frames:
-                    self.processed_frames.remove(frame)
+        # Handle current frame detections
+        if received_frame == current_frame_num and self.state == CycleState.COLLECT:
+            if self.current_frame:
+                self.current_frame.detections[source_node] = detections
+                log(f"Added detection from {source_node} for current frame {current_frame_num}")
+                log(f"Current frame now has {len(self.current_frame.detections)} node detections")
+        
+        # Handle future frame detections
+        elif received_frame == current_frame_num + 1:
+            with self.early_detections_lock:
+                self.early_detections[received_frame][source_node] = detections
+                log(f"Stored early detection from {source_node} for frame {received_frame}")
 
     def stop(self):
-        """Stop all tracker threads"""
-        log("Stopping person tracker...")
-        
-        self.running = False  # Signal threads to stop
-        
-        # Wait for all threads to complete
-        for thread in self.threads:
-            thread.join(timeout=3.0)
-            if thread.is_alive():
-                log(f"Warning: Tracker thread {thread.name} didn't shut down gracefully")
-        
-        self.threads.clear()
+        """Gracefully stop the cycle manager and cleanup resources"""
+        log("Stopping DistributedPersonTrackerStateMachine")
+        self.running = False
+        self.listener_thread.join(timeout=1.0)
+        self.socket.close()
+        log(f"DistributedPersonTrackerStateMachine for node {self.node_id} stopped")

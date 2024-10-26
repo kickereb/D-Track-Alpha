@@ -1,6 +1,6 @@
 import threading
 
-from distributed_person_tracker import DistributedPersonTracker
+from distributed_person_tracker import DistributedPersonTrackerStateMachine
 from routing_table_manager import RoutingTableManager
 
 from syncronisation_manager import SyncManager
@@ -10,7 +10,7 @@ class CameraNode:
     def __init__(self, node_id, ip, port, neighbors):
         self.node_id = node_id
         self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)
-        self.distributed_person_tracker = DistributedPersonTracker(node_id, ip, self.routing_table_manager)
+        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(node_id, ip, self.routing_table_manager)
         # self.sync_manager = SyncManager(self.network_manager, len(neighbors) + 1)
 
         # Camera calibration parameters
@@ -25,6 +25,7 @@ class CameraNode:
         self.routing_table = {node_id: (0, node_id)}
         self.frame_number = 0
         self.running = True
+        self.threads = []
 
     def start(self):
         # TODO: Syncronise nodes at initialisation.
@@ -41,7 +42,7 @@ class CameraNode:
             # Potential extension task: Utilise network delay as route weighting.
             threading.Thread(target=self.routing_table_manager.start(), daemon=True),
             # A camera node also needs threads for the person tracker pipeline.
-            threading.Thread(target=self.distributed_person_tracker.start(), daemon=True),
+            threading.Thread(target=self.distributed_person_tracker.run_cycle_indefintely(), daemon=True),
         ]
         
         for thread in self.threads:

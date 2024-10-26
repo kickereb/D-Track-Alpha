@@ -11,6 +11,7 @@ class RoutingTableManager:
         self.port = port
         self.neighbors = neighbors  # Dictionary of neighbor_id: (ip, port, distance)
         self.routing_table = {node_id: (0, node_id)}  # Format: destination: (distance, next_hop)
+        self.total_nodes = 1
         self.frame_number = 0
         self.lock = threading.Lock()
 
