@@ -10,9 +10,6 @@ fi
 apt-get update
 apt-get upgrade
 
-# Install necessary python packages
-apt-get install -y python3-picamera2 python3-paho-mqtt python3-pillow
-
 # Get necessary scripts for ArduCAM
 wget -O install_pivariety_pkgs.sh https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/install_script/install_pivariety_pkgs.sh
 chmod +x install_pivariety_pkgs.sh
