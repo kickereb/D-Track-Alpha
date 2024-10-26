@@ -83,8 +83,8 @@ class DistributedPersonTrackerStateMachine:
     """
     
     def __init__(self, node_id: str, ip: str, routing_table_manager, 
-                 cycle_time_ms: int = 2000, 
-                 collection_timeout_ms: int = 1000):
+                 cycle_time_ms: int = 10000, 
+                 collection_timeout_ms: int = 5000):
         """
         Initialise the state machine
         
@@ -132,7 +132,7 @@ class DistributedPersonTrackerStateMachine:
         """Main cycle loop with strict timing controls"""
         log("Starting frame processing cycle")
         while self.running:
-            self.cycle_start_time = time.time()
+            self.cycle_start_time = time.time()*1000
             log(f"\n=================== NEW CYCLE {self.frame_number + 1} ===================")
             log(f"Cycle started at {time.strftime('%H:%M:%S', time.localtime(self.cycle_start_time))}")
         
@@ -150,7 +150,7 @@ class DistributedPersonTrackerStateMachine:
                 self.state = CycleState.DETECT
 
                 # Try to maintain cycle timing
-                elapsed = time.time() - self.cycle_start_time
+                elapsed = time.time()*1000 - self.cycle_start_time
                 if elapsed < self.cycle_time:
                     sleep_time = self.cycle_time - elapsed
                     log(f"Cycle completed early, sleeping for {sleep_time:.3f}ms\n\n")
@@ -176,7 +176,7 @@ class DistributedPersonTrackerStateMachine:
             self.current_frame = FrameData(
                 frame_number=current_frame_num,
                 detections={},
-                start_time=time.time()
+                start_time=time.time()*1000
             )
             
             # Create and store local detection
@@ -213,7 +213,7 @@ class DistributedPersonTrackerStateMachine:
         
         log(f"Starting collection phase [frame {self.frame_number}]")
 
-        collection_start = time.time()
+        collection_start = time.time()*1000
         time_since_cycle_start = (collection_start - self.cycle_start_time) * 1000
         remaining_time_ms = self.collection_timeout - time_since_cycle_start
         
@@ -227,17 +227,22 @@ class DistributedPersonTrackerStateMachine:
         # Convert remaining time to seconds for sleep operations
         remaining_time = remaining_time_ms
         
-        # Collection loop with hard cutoff
-        while (time.time() - self.cycle_start_time < self.collection_timeout and  # Hard cutoff
-               time.time() - collection_start < remaining_time and  # Remaining time
-               not self._check_frame_complete()):  # Completion check
-            time.sleep(0.001)  # Small sleep to prevent CPU spinning
-            
-        # Log collection results
-        collection_time = time.time() - collection_start
-        time_since_start = (time.time() - self.cycle_start_time) * 1000
-        received = len(self.current_frame.detections)
-        total = len(self.routing_table_manager.routing_table)
+        with self.routing_table_manager.lock:
+            print("here 1")
+            # Collection loop with hard cutoff
+            while (time.time()*1000 - self.cycle_start_time < self.collection_timeout and  # Hard cutoff
+                time.time()*1000 - collection_start < remaining_time and  # Remaining time
+                not self._check_frame_complete()):  # Completion check
+                print(time.time()*1000 - self.cycle_start_time, self.collection_timeout)
+                print(time.time()*1000 - collection_start,remaining_time )
+                print(self._check_frame_complete())
+                time.sleep(0.001)  # Small sleep to prevent CPU spinning
+                
+            # Log collection results
+            collection_time = time.time()*1000 - collection_start
+            time_since_start = (time.time()*1000 - self.cycle_start_time)
+            received = len(self.current_frame.detections)
+            total = len(self.routing_table_manager.routing_table)
         
         log(f"\nCollection Results:")
         log(f"✓ Nodes reported: {received}/{total}")
@@ -264,9 +269,9 @@ class DistributedPersonTrackerStateMachine:
             log(f"Processing frame {self.frame_number} with {received_nodes}/{total_nodes} nodes")
             
             # Process detections
-            process_start = time.time()
+            process_start = time.time()*1000
             self._process_frame(self.current_frame)
-            log(f"Frame processing took {time.time() - process_start:.3f}ms")
+            log(f"Frame processing took {time.time()*1000 - process_start:.3f}ms")
             
             # Cleanup old frame data
             with self.early_detections_lock:
@@ -294,7 +299,7 @@ class DistributedPersonTrackerStateMachine:
             'type': 'detection',
             'frame_number': self.frame_number,
             'source_node': self.node_id,
-            'timestamp': time.time(),
+            'timestamp': time.time()*1000,
             'detections': [d.__dict__ for d in detections]
         }
 
