@@ -32,6 +32,6 @@ if __name__ == "__main__":
     neighbors = {}
     for neighbor in args.neighbors.split(';'):
         n_id, n_ip, n_port = neighbor.split(',')
-        neighbors[n_id] = (n_ip, int(n_port))
+        neighbors[n_id] = (n_ip, int(n_port), 1)
     
     main(args.node_id, args.ip, args.port, neighbors)
