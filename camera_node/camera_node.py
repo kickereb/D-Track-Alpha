@@ -36,7 +36,7 @@ class CameraNode:
         #         self.sync_condition.wait()
 
         # Start all necessary tasks a camera node needs to acheive in seperate threads
-        threads = [
+        self.threads = [
             # We need to handle continuous routing table updates to handle drop-outs or high network latency etc.
             # Potential extension task: Utilise network delay as route weighting.
             threading.Thread(target=self.routing_table_manager.start(), daemon=True),
@@ -44,7 +44,7 @@ class CameraNode:
             threading.Thread(target=self.distributed_person_tracker.start(), daemon=True),
         ]
         
-        for thread in threads:
+        for thread in self.threads:
             thread.start()
 
     def stop(self):
