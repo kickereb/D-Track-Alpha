@@ -305,7 +305,7 @@ class DistributedPersonTrackerStateMachine:
                 
             dist, next_hop = self.routing_table_manager.routing_table[dest_node]
             if next_hop in self.routing_table_manager.neighbors:
-                next_hop_ip, next_hop_port = self.routing_table_manager.neighbors[next_hop]
+                next_hop_ip, next_hop_port, _ = self.routing_table_manager.neighbors[next_hop]
                 try:
                     msg_data = json.dumps(message).encode()
                     self.socket.sendto(msg_data, (next_hop_ip, next_hop_port))
