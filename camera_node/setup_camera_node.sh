@@ -8,7 +8,7 @@ fi
 
 # Install necessary python packages
 apt-get update
-sudo apt install python3-venv python3-pip
-python3 -m venv camera-node
+sudo apt install -y python3-venv python3-pip libcap-dev
+python3 -m venv --system-site-packages camera-node
 source camera-node/bin/activate
-pip install -y picamera2 paho-mqtt pillow ultralytics
+pip install picamera2 paho-mqtt pillow ultralytics
