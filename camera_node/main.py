@@ -3,7 +3,7 @@ import time
 from camera_node import CameraNode
 from utils.logger import log
 import numpy as np
-from utils.network import get_ip_address
+from utils.network import get_ip_address, discover_dtrack_hosts
 
 def get_dummy_calibration(image_width: int = 1280, image_height: int = 720):
     """
@@ -75,17 +75,33 @@ def main(node_id, ip, port, neighbors):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start a camera node in the network.")
+    # TODO: When formatting pi make hostname in format dtrack-A, dtrack-B etc. to uniquely name a node.
     parser.add_argument("node_id", help="ID of this node")
     parser.add_argument("port", type=int, help="Port number of this node")
-    parser.add_argument("neighbors", help="Neighbors in format 'id1,ip1,port1;id2,ip2,port2;...'")
+    parser.add_argument("--discover", action="store_true", 
+                       help="Enable automatic neighbor discovery")
+    parser.add_argument("--neighbors", 
+                       help="Manual neighbors in format 'id1,ip1,port1;id2,ip2,port2;...'",
+                       default="")
     
     args = parser.parse_args()
-    
-    neighbors = {}
-    for neighbor in args.neighbors.split(';'):
-        n_id, n_ip, n_port = neighbor.split(',')
-        neighbors[n_id] = (n_ip, int(n_port), 1)
 
-    ip = get_ip_address()
+
+    neighbors = {}
     
+    # Automatic discovery if enabled
+    if args.discover:
+        discovered_neighbors = discover_dtrack_hosts()
+        neighbors.update(discovered_neighbors)
+        print(f"Discovered {len(discovered_neighbors)} dtrack nodes")
+    
+    # Add manually specified neighbors if any
+    if args.neighbors:
+        for neighbor in args.neighbors.split(';'):
+            if neighbor:  # Skip empty strings
+                n_id, n_ip, n_port = neighbor.split(',')
+                neighbors[n_id] = (n_ip, int(n_port), 1)
+    
+    ip = get_ip_address()
+
     main(args.node_id, ip, args.port, neighbors)
