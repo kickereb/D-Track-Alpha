@@ -10,6 +10,10 @@ fi
 apt-get update
 apt-get upgrade
 
+# Create a temporary directory for downloads
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
+
 # Get necessary scripts for ArduCAM
 wget -O install_pivariety_pkgs.sh https://github.com/ArduCAM/Arducam-Pivariety-V4L2-Driver/releases/download/install_script/install_pivariety_pkgs.sh
 chmod +x install_pivariety_pkgs.sh
@@ -26,6 +30,9 @@ fi
 # Check if the line already exists
 if grep -q "^dtoverlay=arducam-64mp" "$CONFIG_FILE"; then
     echo "dtoverlay=arducam-64mp already exists in config.txt"
+    # Cleanup before exit
+    cd /
+    rm -rf "$TEMP_DIR"
     exit 0
 fi
 
@@ -38,6 +45,12 @@ sed -i '/\[all\]/a dtoverlay=arducam-64mp' "$CONFIG_FILE"
 if [ $? -eq 0 ]; then
     echo "Successfully added dtoverlay=arducam-64mp to config.txt"
     echo "A backup was created at ${CONFIG_FILE}.backup"
+    
+    # Cleanup downloaded files
+    cd /
+    rm -rf "$TEMP_DIR"
+    
+    echo "Cleaned up temporary installation files"
     echo "System needs to be rebooted for changes to take effect"
     read -p "Would you like to reboot now? (y/N) " -n 1 -r
     echo
@@ -46,5 +59,8 @@ if [ $? -eq 0 ]; then
     fi
 else
     echo "Error: Failed to modify config.txt"
+    # Cleanup even if there was an error
+    cd /
+    rm -rf "$TEMP_DIR"
     exit 1
 fi

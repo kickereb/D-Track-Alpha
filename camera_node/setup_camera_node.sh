@@ -13,5 +13,5 @@ python3 -m venv --system-site-packages camera-node
 source camera-node/bin/activate
 pip install picamera2 paho-mqtt pillow ultralytics
 # Create the best possible raspberry pi optimised model
-sudo cp pnnx ~/dev/D-Track-Alpha/camera_node/camera-node/lib/python3.11/site-packages/ultralytics/pnnx
+sudo cp pnnx ~/D-Track-Alpha/camera_node/camera-node/bin/pnnx
 yolo export model=yolo11n.pt format=ncnn
