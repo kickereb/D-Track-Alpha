@@ -5,64 +5,103 @@ from utils.logger import log
 import numpy as np
 from utils.network import get_ip_address, discover_dtrack_hosts
 
-def get_dummy_calibration(image_width: int = 1280, image_height: int = 720):
+def load_calibration(camera_id: str = None) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Creates dummy camera calibration data for testing
-    
-    These values are rough approximations for a typical wide-angle camera
-    at 1280x720 resolution. They should only be used for testing.
+    Loads camera calibration data from YAML file.
     
     Args:
-        image_width: Width of the camera image in pixels
-        image_height: Height of the camera image in pixels
-        
+        camera_id: Optional camera identifier (e.g., 'Cam_001'). If None, 
+                  looks for calibration_matrices.yml in current directory
+    
     Returns:
         tuple: (camera_matrix, dist_coeffs)
+        
+    Raises:
+        FileNotFoundError: If calibration file is not found
+        ValueError: If calibration data is invalid
     """
-    # Focal length approximation (rough estimate for 90° FOV)
-    focal_length = image_width * 0.8
+    # Setup logging
+    logger = logging.getLogger(__name__)
     
-    # Principal point (usually close to image center)
-    cx = image_width / 2
-    cy = image_height / 2
+    # Determine file path
+    if camera_id:
+        filename = f"data/calibrations/{camera_id}_calibration.yml"
+    else:
+        filename = "calibration_matrices.yml"
     
-    # Create camera matrix
-    # [[fx,  0, cx],
-    #  [ 0, fy, cy],
-    #  [ 0,  0,  1]]
-    camera_matrix = np.array([
-        [focal_length, 0, cx],
-        [0, focal_length, cy],
-        [0, 0, 1]
-    ], dtype=np.float32)
-    
-    # Distortion coefficients [k1, k2, p1, p2, k3]
-    # Using minimal distortion for dummy values
-    dist_coeffs = np.array([0.1, 0.01, 0, 0, 0.001], dtype=np.float32)
-    
-    return camera_matrix, dist_coeffs
+    try:
+        with open(filename, 'r') as f:
+            # Skip the %YAML:1.0 line if it exists
+            first_line = f.readline()
+            if not first_line.startswith('%YAML'):
+                f.seek(0)  # Reset to start if no YAML header
+            
+            # Load YAML content
+            calib_data = yaml.safe_load(f)
+            
+        # Extract camera matrix
+        matrix_data = calib_data['intrinsic']['camera_matrix']['data']
+        camera_matrix = np.array(matrix_data).reshape(3, 3)
+        
+        # Extract distortion coefficients
+        dist_data = calib_data['intrinsic']['distortion_vector']['data']
+        dist_coeffs = np.array(dist_data)
+        
+        # Validate data
+        if camera_matrix.shape != (3, 3):
+            raise ValueError(f"Invalid camera matrix shape: {camera_matrix.shape}")
+        if len(dist_coeffs) != 5:
+            raise ValueError(f"Invalid distortion coefficients length: {len(dist_coeffs)}")
+        
+        # Print calibration info
+        print_calibration_info(camera_matrix, dist_coeffs, 
+                             calib_data['accuracy']['mean_reprojection_error'],
+                             calib_data['accuracy']['total_points'])
+        
+        return camera_matrix, dist_coeffs
+        
+    except FileNotFoundError:
+        logger.error(f"Calibration file not found: {filename}")
+        logger.warning("Falling back to dummy calibration values")
+        return get_dummy_calibration(
+            calib_data.get('intrinsic', {}).get('img_width', 1280),
+            calib_data.get('intrinsic', {}).get('img_height', 720)
+        )
+    except Exception as e:
+        logger.error(f"Error loading calibration data: {str(e)}")
+        logger.warning("Falling back to dummy calibration values")
+        return get_dummy_calibration()
 
-def print_calibration_info(camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
+def print_calibration_info(camera_matrix: np.ndarray, 
+                          dist_coeffs: np.ndarray,
+                          reprojection_error: Optional[float] = None,
+                          total_points: Optional[int] = None):
     """
     Prints readable information about the calibration parameters
     """
-    print("\n=== Camera Calibration Parameters (DUMMY) ===")
-    print("WARNING: These are dummy values for testing only!")
+    print("\n=== Camera Calibration Parameters ===")
     print("\nCamera Matrix:")
-    print(f"Focal Length: {camera_matrix[0,0]:.1f} pixels")
+    print(f"Focal Length X: {camera_matrix[0,0]:.1f} pixels")
+    print(f"Focal Length Y: {camera_matrix[1,1]:.1f} pixels")
     print(f"Principal Point: ({camera_matrix[0,2]:.1f}, {camera_matrix[1,2]:.1f})")
+    
     print("\nDistortion Coefficients:")
-    print(f"k1: {dist_coeffs[0]:.3f}")
-    print(f"k2: {dist_coeffs[1]:.3f}")
-    print(f"p1: {dist_coeffs[2]:.3f}")
-    print(f"p2: {dist_coeffs[3]:.3f}")
-    print(f"k3: {dist_coeffs[4]:.3f}")
-    print("\nNOTE: Please replace with actual calibration values")
+    print(f"k1: {dist_coeffs[0]:.6f}")
+    print(f"k2: {dist_coeffs[1]:.6f}")
+    print(f"p1: {dist_coeffs[2]:.6f}")
+    print(f"p2: {dist_coeffs[3]:.6f}")
+    print(f"k3: {dist_coeffs[4]:.6f}")
+    
+    if reprojection_error is not None:
+        print(f"\nCalibration Accuracy:")
+        print(f"Mean Reprojection Error: {reprojection_error:.4f} pixels")
+    if total_points is not None:
+        print(f"Total Calibration Points: {total_points}")
     print("=" * 45 + "\n")
 
 def main(node_id, ip, port, neighbors):
     # Create and start node
-    camera_matrix, dist_coeffs = get_dummy_calibration()
+    camera_matrix, dist_coeffs = load_calibration(node_id)
     node = CameraNode(node_id, ip, port, neighbors, camera_matrix, dist_coeffs)
     
     try:

@@ -118,7 +118,7 @@ class CameraControlGUI:
             # time.sleep(sleep_time)
 
         for i, config in enumerate(self.ssh_configs):
-            image_path = f"/home/dtrack/dev/dtrack/data/photos/{image_name}.jpg"
+            image_path = f"/home/dtrack/D-Track-Alpha/calibration_suite/data/photos/{image_name}.jpg"
             self.download_and_display_image(image_path, config, i)
 
         self.image_counter += 1
