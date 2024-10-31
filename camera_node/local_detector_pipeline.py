@@ -241,8 +241,8 @@ class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
         self.tvec = None
         # Single view calibration settings
         self.calibration = {
-            "start_pixel": (0, 1080),
-            "end_pixel": (1920, 1080),
+            "start_pixel": (0, 640),
+            "end_pixel": (640, 640),
             "start_true_coord": (0, 0),
             "end_true_coord": (320, 150),
             "scale_x": None,
