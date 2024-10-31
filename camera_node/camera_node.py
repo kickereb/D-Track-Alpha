@@ -36,6 +36,8 @@ class CameraNode:
         # Wait until synchronized before starting other threads
         if not self.sync_manager.wait_for_sync(timeout=10.0):  # 30 second total timeout
             log(f"Node {self.node_id}: Synchronization timeout")
+            self.stop()
+            exit(0)
 
         # Get the final list of active nodes
         active_nodes = self.sync_manager.get_active_nodes()

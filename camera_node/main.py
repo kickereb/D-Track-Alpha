@@ -20,11 +20,7 @@ def load_calibration(camera_id: str = None):
         FileNotFoundError: If calibration file is not found
         ValueError: If calibration data is invalid
     """
-    # Determine file path
-    if camera_id:
-        filename = f"data/calibrations/{camera_id}_calibration.yml"
-    else:
-        filename = "calibration_matrices.yml"
+    filename = "calibration_matrices.yml"
     
     try:
         with open(filename, 'r') as f:
