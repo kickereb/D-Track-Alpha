@@ -12,12 +12,48 @@ class BoundingBox:
     x2: float
     y2: float
 
+    def to_dict(self):
+        """Convert BoundingBox to dictionary for serialization"""
+        return {
+            'x1': self.x1,
+            'y1': self.y1,
+            'x2': self.x2,
+            'y2': self.y2
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create BoundingBox from dictionary"""
+        return cls(
+            x1=data['x1'],
+            y1=data['y1'],
+            x2=data['x2'],
+            y2=data['y2']
+        )
+
 @dataclass
 class WorldCoordinates:
     """Represents a point in 3D world space"""
     x: float
     y: float
     z: float
+        
+    def to_dict(self):
+        """Convert WorldCoordinate to dictionary for serialization"""
+        return {
+            'x': self.x,
+            'y': self.y,
+            'z': self.z
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create WorldCoordinate from dictionary"""
+        return cls(
+            x=data['x'],
+            y=data['y'],
+            z=data['z']
+        )
 
 @dataclass
 class PersonDetection:
@@ -25,7 +61,28 @@ class PersonDetection:
     bbox: BoundingBox
     confidence: float
     tracking_id: int
-    world_pos: Optional[WorldCoordinates] = None
+    world_position: Optional[WorldCoordinates] = None
+
+    def to_dict(self):
+        """Convert PersonDetection to dictionary for serialization"""
+        data = {
+            'bbox': self.bbox.to_dict(),
+            'confidence': self.confidence,
+            'tracking_id': self.tracking_id,
+            'world_position': self.world_position.to_dict() if self.world_position else None,
+        }
+        return data
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create PersonDetection from dictionary"""
+        world_pos_data = data.get('world_position')
+        return cls(
+            tracking_id=data['tracking_id'],
+            confidence=data['confidence'],
+            bbox=BoundingBox.from_dict(data['bbox']),
+            world_position=WorldCoordinates.from_dict(world_pos_data) if world_pos_data else None,
+        )
 
 class ImageCaptureInterface(ABC):
     """Abstract base class for image capture devices"""
@@ -211,10 +268,10 @@ class DetectionManager:
             world_pos = self.coordinate_transformer.transform(bbox, frame.shape[:2])
             
             detection = PersonDetection(
-                bbox=bbox,
-                confidence=confidence * 100,  # Convert to percentage
                 tracking_id=tracking_id_start * 1000 + i,
-                world_pos=world_pos
+                confidence=confidence * 100,  # Convert to percentage
+                bbox=bbox,
+                world_position=world_pos
             )
             results.append(detection)
         

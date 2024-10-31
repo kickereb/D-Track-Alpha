@@ -31,6 +31,42 @@ class FrameData:
     frame_number: int
     detections: Dict[str, List[PersonDetection]]  # node_id -> detections
     start_time: float
+    
+    def to_dict(self):
+        """Convert FrameData to dictionary for serialization"""
+        return {
+            'frame_number': self.frame_number,
+            'detections': {
+                node_id: [d.to_dict() for d in dets]
+                for node_id, dets in self.detections.items()
+            },
+            'start_time': self.start_time
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        """Create FrameData from dictionary"""
+        return cls(
+            frame_number=data['frame_number'],
+            detections={
+                node_id: [PersonDetection.from_dict(d) for d in dets]
+                for node_id, dets in data['detections'].items()
+            },
+            start_time=data['start_time']
+        )
+    
+    def __getstate__(self):
+        """Return state for pickling"""
+        return self.to_dict()
+    
+    def __setstate__(self, state):
+        """Set state when unpickling"""
+        self.frame_number = state['frame_number']
+        self.detections = {
+            node_id: [PersonDetection.from_dict(d) for d in dets]
+            for node_id, dets in state['detections'].items()
+        }
+        self.start_time = state['start_time']
 
 class CycleState(Enum):
     """
@@ -288,8 +324,10 @@ class DistributedPersonTrackerStateMachine:
             'frame_number': self.frame_number,
             'source_node': self.node_id,
             'timestamp': time.time()*1000,
-            'detections': [d.__dict__ for d in detections]
+            'detections': [d.to_dict() for d in detections]
         }
+
+        print(message)
 
         for dest_node in self.routing_table_manager.routing_table:
             if dest_node == self.node_id:
