@@ -5,7 +5,7 @@ from utils.logger import log
 import numpy as np
 from utils.network import get_ip_address, discover_dtrack_hosts
 
-def load_calibration(camera_id: str = None) -> Tuple[np.ndarray, np.ndarray]:
+def load_calibration(camera_id: str = None):
     """
     Loads camera calibration data from YAML file.
     
