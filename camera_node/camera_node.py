@@ -40,10 +40,28 @@ class CameraNode:
         active_nodes = self.sync_manager.get_active_nodes()
         log(f"Node {self.node_id}: Synchronized with nodes: {active_nodes}")
 
+        # get current time
         now = datetime.datetime.now()
-        log(now)
+
+        # Calculate seconds until next 10-second boundary
+        seconds_now = now.second + now.microsecond/1000000.0
+        seconds_to_next_10 = 10 - (seconds_now % 10)
         
-        # Initialize components with discovered nodes
+        # If we're very close to the next 10-second boundary (less than 1 seconds),
+        # wait for the next one after that to be safe
+        if seconds_to_next_10 < 1:
+            seconds_to_next_10 += 10
+            
+        log(f"Node {self.node_id}: Waiting {seconds_to_next_10:.3f} seconds for next 10-second boundary")
+        
+        # Sleep until the target time
+        time.sleep(seconds_to_next_10)
+        
+        # Log the actual start time
+        actual_start = datetime.datetime.now()
+        log(f"Node {self.node_id}: Starting at {actual_start}")
+        
+        # Initialise components with discovered nodes
         self.routing_table_manager = RoutingTableManager(
             self.node_id,
             self.sync_manager.nodes[self.node_id].ip,
