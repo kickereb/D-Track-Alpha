@@ -1,5 +1,5 @@
 import sys
-import timefrom datetime import datetime
+from datetime import datetime
 
 def log(message):
     timestamp = datetime.now().strftime('%H:%M:%S.%f')
