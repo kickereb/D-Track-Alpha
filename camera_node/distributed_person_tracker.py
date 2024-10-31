@@ -157,7 +157,7 @@ class DistributedPersonTrackerStateMachine:
         self.detection_manager = DetectionManager(
             image_capture=PiCamera2Capture(),
             person_detector=YOLOv11NCNNPersonDetector(),
-            coordinate_transformer=OpenCVCoordinateTransformer()
+            coordinate_transformer=LennysCustomCoordinateTransformer()
         )
         self.detection_manager.initialise(camera_matrix, dist_coeffs)
 

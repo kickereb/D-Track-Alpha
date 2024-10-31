@@ -267,6 +267,6 @@ class GlobalTracker:
     
     def _send_to_backend(self, data) -> None:
         """Send world coordinates to app backend web api"""
-        server_addr = "http://10.0.0.169:3000/"
+        server_addr = "http://192.168.108.120:3000/"
         requests.post(url=server_addr, data=json.dumps(data).encode())
         
