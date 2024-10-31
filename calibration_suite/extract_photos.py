@@ -55,8 +55,8 @@ def download_photos(connection, camera_name, remote_path, local_path):
 def main():
     parser = argparse.ArgumentParser(description="Download photos from Raspberry Pis")
     parser.add_argument("hosts", nargs="+", help="List of host IPs")
-    parser.add_argument("--remote-path", default="~/dev/dtrack/data/photos", help="Remote path on Raspberry Pis")
-    parser.add_argument("--local-path", default="~/dev/personal/dtrack/MC-Calib/data", help="Local path to save photos")
+    parser.add_argument("--remote-path", default="/home/dtrack/D-Track-Alpha/calibration_suite/data/photos", help="Remote path on Raspberry Pis")
+    parser.add_argument("--local-path", default="~/dev/personal/D-Track-Alpha/calibration_suite/data/photos", help="Local path to save photos")
     parser.add_argument("--password", default="dtrack", help="SSH password for Raspberry Pis")
     args = parser.parse_args()
 

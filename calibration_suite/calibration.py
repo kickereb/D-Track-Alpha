@@ -128,8 +128,8 @@ def visualize_calibration(camera_matrix, dist_coeffs, rvecs, tvecs, images):
     plt.show()
     return images_with_axes
 
-if name == 'main':
-    base_folder = 'data/frames/'
+if __name__ == '__main__':
+    base_folder = ''
     calibration_results = {}
     
     for folder in sorted(glob.glob(base_folder + 'Cam_*')):

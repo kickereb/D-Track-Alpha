@@ -336,3 +336,129 @@ Stdout: already printed
 Stderr: n/a (PTYs have no stderr)
 
 
+2024-10-31 17:43:09,226 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:43:09,226 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:43:09,259 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:43:09,298 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:43:09,328 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:09,339 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:09,349 - INFO - Authentication (password) successful!
+2024-10-31 17:43:09,369 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:09,379 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:09,389 - INFO - Authentication (password) successful!
+2024-10-31 17:43:27,848 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py 10.0.0.14'
+
+Exit code: 2
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:43:28,075 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py 10.0.0.14'
+
+Exit code: 2
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:43:52,690 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:43:52,694 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:43:52,721 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:43:52,725 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:43:52,792 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:52,793 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:52,802 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:52,803 - INFO - Authentication (publickey) failed.
+2024-10-31 17:43:52,814 - INFO - Authentication (password) successful!
+2024-10-31 17:43:52,815 - INFO - Authentication (password) successful!
+2024-10-31 17:44:16,173 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py 10.0.0.14 1883'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:44:16,184 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py 10.0.0.14 1883'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:45:31,712 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:45:31,712 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:45:31,745 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:45:31,746 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:45:31,814 - INFO - Authentication (publickey) failed.
+2024-10-31 17:45:31,815 - INFO - Authentication (publickey) failed.
+2024-10-31 17:45:31,824 - INFO - Authentication (publickey) failed.
+2024-10-31 17:45:31,825 - INFO - Authentication (publickey) failed.
+2024-10-31 17:45:31,834 - INFO - Authentication (password) successful!
+2024-10-31 17:45:31,835 - INFO - Authentication (password) successful!
+2024-10-31 17:45:54,923 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py 10.0.0.14 1883'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:45:55,086 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py 10.0.0.14 1883'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 19:24:27,344 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 19:24:27,345 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 19:24:27,383 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 19:24:27,383 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 19:24:27,456 - INFO - Authentication (publickey) failed.
+2024-10-31 19:24:27,457 - INFO - Authentication (publickey) failed.
+2024-10-31 19:24:27,467 - INFO - Authentication (publickey) failed.
+2024-10-31 19:24:27,467 - INFO - Authentication (publickey) failed.
+2024-10-31 19:24:27,476 - INFO - Authentication (password) successful!
+2024-10-31 19:24:27,477 - INFO - Authentication (password) successful!
+2024-10-31 19:49:11,859 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 19:49:11,861 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 19:49:11,940 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 19:49:11,940 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 19:49:12,025 - INFO - Authentication (publickey) failed.
+2024-10-31 19:49:12,025 - INFO - Authentication (publickey) failed.
+2024-10-31 19:49:12,042 - INFO - Authentication (publickey) failed.
+2024-10-31 19:49:12,043 - INFO - Authentication (publickey) failed.
+2024-10-31 19:49:12,057 - INFO - Authentication (password) successful!
+2024-10-31 19:49:12,060 - INFO - Authentication (password) successful!
+2024-10-31 19:50:27,870 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 19:50:27,876 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 19:50:27,951 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 19:50:27,952 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 19:50:28,033 - INFO - Authentication (publickey) failed.
+2024-10-31 19:50:28,037 - INFO - Authentication (publickey) failed.
+2024-10-31 19:50:28,046 - INFO - Authentication (publickey) failed.
+2024-10-31 19:50:28,050 - INFO - Authentication (publickey) failed.
+2024-10-31 19:50:28,059 - INFO - Authentication (password) successful!
+2024-10-31 19:50:28,062 - INFO - Authentication (password) successful!
