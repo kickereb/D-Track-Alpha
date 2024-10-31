@@ -1,3 +1,11 @@
+#!/bin/bash
+
+# Check if running as root
+if [ "$EUID" -ne 0 ]; then 
+    echo "Please run as root (use sudo)"
+    exit 1
+fi
+
 # Install necessary python packages
 apt-get update
 sudo apt install -y python3-venv python3-pip libcap-dev

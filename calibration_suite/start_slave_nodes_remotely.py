@@ -22,7 +22,7 @@ def start_subscriber(host):
     logging.info(f"Starting subscriber on {host}")
     try:
         connection = Connection(host, user="dtrack", connect_kwargs={"password": "dtrack"})
-        result = connection.run(f"cd {PATH_TO_MAIN} && python slave_calibrator.py A 10.0.0.14", pty=True)
+        result = connection.run(f"cd {PATH_TO_MAIN} && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py A 10.0.0.14", pty=True)
         logging.info(f"Subscriber on {host} output: {result.stdout}")
     except Exception as e:
         logging.error(f"Error starting subscriber on {host}: {str(e)}")
