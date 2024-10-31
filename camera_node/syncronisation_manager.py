@@ -11,6 +11,7 @@ class NodeInfo:
     """Store information about connected nodes"""
     ip: str
     port: int
+    direct_distance: int
     ready: bool = False
 
 class SyncManager:
@@ -31,8 +32,8 @@ class SyncManager:
         
         # Initialize nodes dictionary with provided nodes
         self.nodes: Dict[str, NodeInfo] = {}
-        for nid, (ip, port, _) in nodes.items():
-            self.nodes[nid] = NodeInfo(ip=ip, port=port, ready=False)
+        for nid, (ip, port, direct_distance) in nodes.items():
+            self.nodes[nid] = NodeInfo(ip=ip, port=port, direct_distance=direct_distance, ready=False)
         
         # Threading components
         self.sync_lock = threading.Lock()
@@ -171,7 +172,7 @@ class SyncManager:
         """Get all active nodes and their connection information."""
         with self.sync_lock:
             return {
-                node_id: (info.ip, info.port)
+                node_id: (info.ip, info.port, info.direct_distance)
                 for node_id, info in self.nodes.items()
                 if info.ready
             }

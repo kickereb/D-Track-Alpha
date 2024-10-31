@@ -63,7 +63,7 @@ class CameraNode:
         # Log the actual start time
         actual_start = datetime.datetime.now()
         log(f"Node {self.node_id}: Starting at {actual_start}")
-        
+
         # Initialis e components with discovered nodes
         self.routing_table_manager = RoutingTableManager(
             self.node_id,
