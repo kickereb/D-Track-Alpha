@@ -109,7 +109,7 @@ class DistributedPersonTrackerStateMachine:
     
     def __init__(self, node_id: str, ip: str, routing_table_manager,
                  camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec,
-                 cycle_time_ms: int = 2500, collection_timeout_ms: int = 2000):
+                 cycle_time_ms: int = 800, collection_timeout_ms: int = 700):
         """
         Initialise the state machine
         

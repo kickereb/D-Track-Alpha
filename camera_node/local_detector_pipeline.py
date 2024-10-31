@@ -229,42 +229,98 @@ class OpenCVCoordinateTransformer(CoordinateTransformerInterface):
         
         return WorldCoordinates(x, y, z)
 
+import numpy as np
+import cv2
+from typing import Dict, List, Tuple, Optional
+
 class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
     def __init__(self):
         self.camera_matrix = None
         self.dist_coeffs = None
         self.rvec = None
         self.tvec = None
-        self.view_calibration = None
-        self.GRID_SIZE = (1000, 1000)  # Define grid size as class constant, adjust as needed
-        
-        # Default view calibration settings
-        self.DEFAULT_VIEW_CALIBRATION = {
-            0: {"start_pixel": (0, 1080), "end_pixel": (1920, 1080), 
-                "start_true_coord": (0, 0), "end_true_coord": (320, 150)},
-            1: {"start_pixel": (0, 1080), "end_pixel": (1920, 1080), 
-                "start_true_coord": (60, 150), "end_true_coord": (360, 60)},
+        # Single view calibration settings
+        self.calibration = {
+            "start_pixel": (0, 1080),
+            "end_pixel": (1920, 1080),
+            "start_true_coord": (0, 0),
+            "end_true_coord": (320, 150),
+            "scale_x": None,
+            "scale_z": None,
+            "offset_x": None,
+            "offset_z": None
         }
     
-    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec) -> None:
+    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec: np.ndarray, tvec: np.ndarray) -> None:
         """Initialize the transformer with camera matrix and distortion coefficients."""
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
         self.rvec = rvec
         self.tvec = tvec
+        self._calibrate()
+    
+    def _calibrate(self) -> None:
+        """Calibrate the coordinate transformation parameters."""
+        start_pixel = self.calibration["start_pixel"]
+        end_pixel = self.calibration["end_pixel"]
+        start_true_coord = np.array(self.calibration["start_true_coord"])
+        end_true_coord = np.array(self.calibration["end_true_coord"])
+
+        # Project start and end points to world coordinates
+        projected_start = self.image_to_world(
+            start_pixel[0], start_pixel[1],
+            self.camera_matrix, self.dist_coeffs,
+            self.rvec, self.tvec, y=0
+        )
+        projected_end = self.image_to_world(
+            end_pixel[0], end_pixel[1],
+            self.camera_matrix, self.dist_coeffs,
+            self.rvec, self.tvec, y=0
+        )
+
+        # Calculate scaling factors
+        scale_x = (end_true_coord[0] - start_true_coord[0]) / (projected_end[0] - projected_start[0])
+        scale_z = (end_true_coord[1] - start_true_coord[1]) / (projected_end[1] - projected_start[1])
+
+        # Calculate offsets
+        offset_x = start_true_coord[0] - (projected_start[0] * scale_x)
+        offset_z = start_true_coord[1] - (projected_start[1] * scale_z)
+
+        # Store calibration parameters
+        self.calibration.update({
+            "scale_x": scale_x,
+            "scale_z": scale_z,
+            "offset_x": offset_x,
+            "offset_z": offset_z
+        })
     
     def transform(self, bbox: BoundingBox, frame_size: Tuple[int, int]) -> WorldCoordinates:
-        """Transform a bounding box to world coordinates."""
+        """
+        Transform a bounding box to world coordinates using a single camera matrix.
+        
+        Args:
+            bbox: BoundingBox object containing x1, y1, x2, y2 coordinates
+            frame_size: Tuple of (width, height) of the frame
+            
+        Returns:
+            WorldCoordinates object containing the transformed coordinates
+        """
+        if any(v is None for v in [self.camera_matrix, self.dist_coeffs, self.rvec, self.tvec]):
+            raise ValueError("Transformer not initialized. Call initialise() first.")
+        
         # Extract the bottom center point of the bounding box
         u = (bbox.x1 + bbox.x2) / 2
         v = bbox.y2
         
-        # Assuming we have rotation and translation vectors for the camera
-        # These should be properly initialized or passed to the method
+        # Get world coordinates
         world_point = self.image_to_world(u, v, self.camera_matrix, self.dist_coeffs, 
                                         self.rvec, self.tvec, y=0)
         
-        return WorldCoordinates(world_point[0], 0, world_point[1])  # y is 0 as we're on ground plane
+        # Apply calibration
+        calibrated_x = world_point[0] * self.calibration["scale_x"] + self.calibration["offset_x"]
+        calibrated_z = world_point[1] * self.calibration["scale_z"] + self.calibration["offset_z"]
+        
+        return WorldCoordinates(calibrated_x, 0, calibrated_z)
     
     @staticmethod
     def image_to_world(u: float, v: float, mtx: np.ndarray, dist: np.ndarray, 
@@ -296,125 +352,6 @@ class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
         world_point = R_inv @ (t * ray - tvec)
         
         return world_point
-    
-    def calibrate_views(self, camera_matrices: List[np.ndarray], 
-                       dist_coef: List[np.ndarray], 
-                       rvec: List[np.ndarray], 
-                       tvec: List[np.ndarray], 
-                       debug: bool = False) -> Dict:
-        """
-        Calibrate multiple camera views using predefined calibration points.
-        
-        Args:
-            camera_matrices: List of camera matrices for each view
-            dist_coef: List of distortion coefficients for each view
-            rvec: List of rotation vectors for each view
-            tvec: List of translation vectors for each view
-            debug: If True, print debug information
-            
-        Returns:
-            Dictionary containing calibration parameters for each view
-        """
-        view_calibration = self.DEFAULT_VIEW_CALIBRATION.copy()
-        
-        for view in range(len(camera_matrices)):
-            start_pixel = view_calibration[view]["start_pixel"]
-            end_pixel = view_calibration[view]["end_pixel"]
-            start_true_coord = np.array(view_calibration[view]["start_true_coord"])
-            end_true_coord = np.array(view_calibration[view]["end_true_coord"])
-
-            if debug:
-                print(f"View {view} has start pixel at {start_pixel} and end pixel at {end_pixel}")
-                print(f"View {view} has start true coord at {start_true_coord} and end true coord at {end_true_coord}")
-
-            projected_start = self.image_to_world(
-                start_pixel[0], start_pixel[1],
-                camera_matrices[view], dist_coef[view],
-                rvec[view], tvec[view], y=0
-            )
-            projected_end = self.image_to_world(
-                end_pixel[0], end_pixel[1],
-                camera_matrices[view], dist_coef[view],
-                rvec[view], tvec[view], y=0
-            )
-
-            if debug:
-                print(f"View {view} has projected start at {projected_start} and projected end at {projected_end}")
-
-            # Calculate scaling factors
-            scale_x = (end_true_coord[0] - start_true_coord[0]) / (projected_end[0] - projected_start[0])
-            scale_z = (end_true_coord[1] - start_true_coord[1]) / (projected_end[1] - projected_start[1])
-
-            # Calculate offsets
-            offset_x = start_true_coord[0] - (projected_start[0] * scale_x)
-            offset_z = start_true_coord[1] - (projected_start[1] * scale_z)
-
-            view_calibration[view].update({
-                "scale_x": scale_x,
-                "scale_z": scale_z,
-                "offset_x": offset_x,
-                "offset_z": offset_z
-            })
-
-            if debug:
-                print(f"View {view} calibration: scale_x={scale_x}, scale_z={scale_z}, "
-                      f"offset_x={offset_x}, offset_z={offset_z}")
-        
-        self.view_calibration = view_calibration
-        return view_calibration
-    
-    def project_positions_to_grid(self, annotations: List[Dict], 
-                                rvec: List[np.ndarray], 
-                                tvec: List[np.ndarray], 
-                                camera_matrices: List[np.ndarray], 
-                                dist_coef: List[np.ndarray]) -> Dict:
-        """Project multiple person positions to a grid."""
-        projected = {}
-        
-        # Initialize view calibration if not already done
-        if self.view_calibration is None:
-            self.view_calibration = self.calibrate_views(camera_matrices, dist_coef, rvec, tvec)
-        
-        for frame_num, frame in enumerate(annotations):
-            for person in frame:
-                personID = person['personID']
-                if personID not in projected:
-                    projected[personID] = {}
-                
-                valid_world_coords = []
-                
-                for view in person['views']:
-                    viewNum, x1, y1, x2, y2 = view.values()
-                    if x1 == -1:  # Skip invalid views
-                        continue
-                    
-                    # Get the foot position of the person
-                    uvCoord = np.array([(x1 + x2) / 2, y2, 1])
-                    mtx = camera_matrices[viewNum]
-                    dist = dist_coef[viewNum]
-                    r = np.asarray(rvec[viewNum])
-                    t = np.asarray(tvec[viewNum])
-                    
-                    # Convert to world coordinates
-                    worldCoord = self.image_to_world(uvCoord[0], uvCoord[1], mtx, dist, r, t, y=0)
-                    
-                    # Apply calibration
-                    calibrated_x = worldCoord[0] * self.view_calibration[viewNum]["scale_x"] + \
-                                 self.view_calibration[viewNum]["offset_x"]
-                    calibrated_z = worldCoord[1] * self.view_calibration[viewNum]["scale_z"] + \
-                                 self.view_calibration[viewNum]["offset_z"]
-                    
-                    calibrated_worldCoord = np.array([calibrated_x, calibrated_z])
-                    valid_world_coords.append(calibrated_worldCoord)
-                
-                if valid_world_coords:
-                    # Average the world coordinates from all valid views
-                    avg_world_coord = np.mean(valid_world_coords, axis=0)
-                    projected[personID][frame_num] = avg_world_coord
-                else:
-                    projected[personID][frame_num] = None
-        
-        return projected
 
 class DetectionManager:
     """Manages the complete detection pipeline"""
