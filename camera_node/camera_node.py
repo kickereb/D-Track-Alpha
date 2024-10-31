@@ -16,7 +16,8 @@ class CameraNode:
         self.dist_coeffs = dist_coeffs
         # self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)\
         # self.discovery_service = DiscoveryService(node_id, ip, port)
-        self.sync_manager = SyncManager(node_id, ip, port)
+        neighbors[node_id] = (ip, port, 0)
+        self.sync_manager = SyncManager(node_id, neighbors)
         
         # Initialise other attributes
         self.neighbors = neighbors
@@ -31,9 +32,8 @@ class CameraNode:
         self.sync_manager.synchronise_start()
 
         # Wait until synchronized before starting other threads
-        if not self.sync_manager.wait_for_sync(timeout=30.0):  # 30 second total timeout
+        if not self.sync_manager.wait_for_sync(timeout=10.0):  # 30 second total timeout
             log(f"Node {self.node_id}: Synchronization timeout")
-            return False
 
         # Get the final list of active nodes
         active_nodes = self.sync_manager.get_active_nodes()
