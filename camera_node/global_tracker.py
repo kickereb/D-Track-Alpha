@@ -5,6 +5,7 @@ from typing import Dict, List, Set, Tuple
 import time
 import sys
 from datetime import datetime
+from collections import defaultdict
 import requests
 
 def log(message):
@@ -41,8 +42,6 @@ class GlobalTracker:
         """
         self.current_frame = frame.frame_number
 
-        print(frame)
-        
         # Collect world positions and detections
         positions_and_detections = self._collect_positions(frame)
         if not positions_and_detections:
@@ -54,7 +53,11 @@ class GlobalTracker:
         
         # Run clustering
         clusters = self._cluster_positions(positions_array)
+        # Log clustering results
+        self._log_cluster_stats(positions_array, clusters)
         cluster_to_global_id = self._match_clusters_to_tracks(positions_array, clusters)
+        # Log tracking matches
+        self._log_tracking_matches(cluster_to_global_id, clusters, positions_array)
         
         # Update detections and tracker state
         self._update_tracks(positions_array, detection_mapping, clusters, cluster_to_global_id)
@@ -160,10 +163,106 @@ class GlobalTracker:
             log(f"Cleaned up inactive tracks: {inactive_ids}")
     
     def _log_tracking_summary(self) -> None:
-        """Log summary of current tracking state"""
-        log(f"\nTracking Summary:")
-        log(f"- Active tracks: {len(self.last_positions)}")
-        log(f"- Next available ID: {self.next_global_id}")
+        """Log enhanced summary of current tracking state"""
+        try:
+            active_tracks = len(self.last_positions)
+            inactive_count = sum(1 for _, last_frame in self.last_seen.items() 
+                            if (self.current_frame - last_frame) > self.inactive_timeout)
+            
+            log(f"\nTracking Summary:")
+            log(f"- Frame: {self.current_frame}")
+            log(f"- Active tracks: {active_tracks}")
+            log(f"- Inactive tracks: {inactive_count}")
+            log(f"- Next available ID: {self.next_global_id}")
+            
+            if active_tracks > 0:
+                log("\nActive Track Positions:")
+                for track_id, pos in self.last_positions.items():
+                    last_seen = self.last_seen.get(track_id, 0)
+                    frames_since_update = self.current_frame - last_seen
+                    log(f"  Track {track_id}:")
+                    log(f"    Position: ({pos[0]:.2f}, {pos[1]:.2f}, {pos[2]:.2f})")
+                    log(f"    Frames since update: {frames_since_update}")
+                    
+        except Exception as e:
+            log(f"Error logging tracking summary: {str(e)}")
+
+    def _log_cluster_stats(self, positions_array: np.ndarray, clusters: np.ndarray):
+        """Log detailed statistics about clusters"""
+        try:
+            unique_clusters = set(clusters)
+            n_clusters = len(unique_clusters) - (1 if -1 in unique_clusters else 0)
+            noise_points = np.sum(clusters == -1)
+            
+            log("\nClustering Results:")
+            log(f"- Total points: {len(positions_array)}")
+            log(f"- Number of clusters: {n_clusters}")
+            log(f"- Noise points: {noise_points}")
+            
+            # Analyze each cluster
+            if n_clusters > 0:
+                log("\nCluster Details:")
+                for cluster_id in unique_clusters:
+                    if cluster_id == -1:
+                        continue
+                        
+                    cluster_mask = clusters == cluster_id
+                    cluster_points = positions_array[cluster_mask]
+                    
+                    # Calculate cluster statistics
+                    center = np.mean(cluster_points, axis=0)
+                    std_dev = np.std(cluster_points, axis=0)
+                    max_dist = np.max([np.linalg.norm(p - center) for p in cluster_points])
+                    
+                    log(f"\nCluster {cluster_id}:")
+                    log(f"  - Points: {len(cluster_points)}")
+                    log(f"  - Center: ({center[0]:.2f}, {center[1]:.2f}, {center[2]:.2f})")
+                    log(f"  - Std Dev: ({std_dev[0]:.2f}, {std_dev[1]:.2f}, {std_dev[2]:.2f})")
+                    log(f"  - Max distance from center: {max_dist:.2f}m")
+            
+            if noise_points > 0:
+                noise_mask = clusters == -1
+                noise_positions = positions_array[noise_mask]
+                log(f"\nNoise Points ({noise_points}):")
+                for pos in noise_positions:
+                    log(f"  - Position: ({pos[0]:.2f}, {pos[1]:.2f}, {pos[2]:.2f})")
+                    
+        except Exception as e:
+            log(f"Error logging cluster stats: {str(e)}")
+
+    def _log_tracking_matches(self, cluster_to_global_id: Dict[int, int], clusters: np.ndarray, 
+                            positions_array: np.ndarray):
+        """Log information about track matching"""
+        try:
+            log("\nTrack Matching Results:")
+            
+            # Group detections by global ID
+            tracks_by_id = defaultdict(list)
+            for i, cluster_id in enumerate(clusters):
+                if cluster_id in cluster_to_global_id:
+                    global_id = cluster_to_global_id[cluster_id]
+                    tracks_by_id[global_id].append(positions_array[i])
+            
+            for global_id, positions in tracks_by_id.items():
+                positions = np.array(positions)
+                mean_pos = np.mean(positions, axis=0)
+                
+                # Get previous position if available
+                prev_pos = self.last_positions.get(global_id)
+                if prev_pos is not None:
+                    distance = np.linalg.norm(mean_pos - prev_pos)
+                    log(f"\nTrack {global_id}:")
+                    log(f"  - Detections: {len(positions)}")
+                    log(f"  - Current pos: ({mean_pos[0]:.2f}, {mean_pos[1]:.2f}, {mean_pos[2]:.2f})")
+                    log(f"  - Previous pos: ({prev_pos[0]:.2f}, {prev_pos[1]:.2f}, {prev_pos[2]:.2f})")
+                    log(f"  - Movement: {distance:.2f}m")
+                else:
+                    log(f"\nNew Track {global_id}:")
+                    log(f"  - Detections: {len(positions)}")
+                    log(f"  - Initial pos: ({mean_pos[0]:.2f}, {mean_pos[1]:.2f}, {mean_pos[2]:.2f})")
+                    
+        except Exception as e:
+            log(f"Error logging tracking matches: {str(e)}")
     
     def _send_to_backend(self, data) -> None:
         """Send world coordinates to app backend web api"""
