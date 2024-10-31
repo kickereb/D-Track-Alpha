@@ -141,7 +141,7 @@ class GlobalTracker:
             self.last_positions[global_id] = pos
             self.last_seen[global_id] = self.current_frame
             
-            self._send_to_backend({cluster_id+"",len(self.last_positions(global_id)),pos[0]+"",pos[2]+""})
+            self._send_to_backend({'target':str(cluster_id),'seq':len(self.last_positions[global_id]),'x':str(pos[0]),'y':str(pos[2])})
             
             log(f"Node {node_id} detection: {detection} (Track {global_id})")
     
@@ -167,6 +167,6 @@ class GlobalTracker:
     
     def _send_to_backend(self, data) -> None:
         """Send world coordinates to app backend web api"""
-        server_addr = "http://10.0.0.169:3000"
+        server_addr = "http://10.0.0.169:3000/"
         requests.post(url=server_addr, data=data)
         
