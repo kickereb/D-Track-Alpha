@@ -43,6 +43,35 @@ class CameraNode:
         active_nodes = self.sync_manager.get_active_nodes()
         log(f"Node {self.node_id}: Synchronized with nodes: {active_nodes}")
 
+        # Initialise components with discovered nodes
+        self.routing_table_manager = RoutingTableManager(
+            self.node_id,
+            self.sync_manager.nodes[self.node_id].ip,
+            self.sync_manager.nodes[self.node_id].port,
+            active_nodes
+        )
+        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(self.node_id, 
+                                                                                self.ip, 
+                                                                                self.routing_table_manager, 
+                                                                                self.camera_matrix, 
+                                                                                self.dist_coeffs)
+        
+        self._wait_until_rounded_timestamp()
+
+        # Start all necessary tasks a camera node needs to acheive in seperate threads
+        self.threads = [
+            # We need to handle continuous routing table updates to handle drop-outs or high network latency etc.
+            # Potential extension task: Utilise network delay as route weighting.
+            threading.Thread(target=self.routing_table_manager.start(), daemon=True),
+            # A camera node also needs threads for the person tracker pipeline.
+            threading.Thread(target=self.distributed_person_tracker.run_cycle_indefintely(), daemon=True),
+        ]
+        
+        for thread in self.threads:
+            thread.start()
+
+    def _wait_until_rounded_timestamp(self):
+        """wait until nearest round timestamp so that all nodes can start at ideally the same time"""
         # get current time
         now = datetime.datetime.now()
 
@@ -63,31 +92,6 @@ class CameraNode:
         # Log the actual start time
         actual_start = datetime.datetime.now()
         log(f"Node {self.node_id}: Starting at {actual_start}")
-
-        # Initialis e components with discovered nodes
-        self.routing_table_manager = RoutingTableManager(
-            self.node_id,
-            self.sync_manager.nodes[self.node_id].ip,
-            self.sync_manager.nodes[self.node_id].port,
-            active_nodes
-        )
-        self.distributed_person_tracker = DistributedPersonTrackerStateMachine(self.node_id, 
-                                                                                self.ip, 
-                                                                                self.routing_table_manager, 
-                                                                                self.camera_matrix, 
-                                                                                self.dist_coeffs)
-
-        # Start all necessary tasks a camera node needs to acheive in seperate threads
-        self.threads = [
-            # We need to handle continuous routing table updates to handle drop-outs or high network latency etc.
-            # Potential extension task: Utilise network delay as route weighting.
-            threading.Thread(target=self.routing_table_manager.start(), daemon=True),
-            # A camera node also needs threads for the person tracker pipeline.
-            threading.Thread(target=self.distributed_person_tracker.run_cycle_indefintely(), daemon=True),
-        ]
-        
-        for thread in self.threads:
-            thread.start()
 
     def stop(self):
         """Recursively stop all threads and cleanup resources"""
