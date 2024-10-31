@@ -136,7 +136,7 @@ class CoordinateTransformerInterface(ABC):
     """Abstract base class for coordinate transformation systems"""
     
     @abstractmethod
-    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray) -> None:
+    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec) -> None:
         """initialise with camera calibration parameters"""
         pass
     
@@ -203,7 +203,7 @@ import cv2
 class OpenCVCoordinateTransformer(CoordinateTransformerInterface):
     """OpenCV-based coordinate transformation"""
     
-    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray) -> None:
+    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec) -> None:
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
     
@@ -246,10 +246,12 @@ class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
                 "start_true_coord": (60, 150), "end_true_coord": (360, 60)},
         }
     
-    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray) -> None:
+    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec) -> None:
         """Initialize the transformer with camera matrix and distortion coefficients."""
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
+        self.rvec = rvec
+        self.tvec = tvec
     
     def transform(self, bbox: BoundingBox, frame_size: Tuple[int, int]) -> WorldCoordinates:
         """Transform a bounding box to world coordinates."""
