@@ -60,10 +60,7 @@ def load_calibration(camera_id: str = None):
     except FileNotFoundError:
         log(f"Calibration file not found: {filename}")
         log("Falling back to dummy calibration values")
-        return get_dummy_calibration(
-            calib_data.get('intrinsic', {}).get('img_width', 1280),
-            calib_data.get('intrinsic', {}).get('img_height', 720)
-        )
+        return get_dummy_calibration()
     except Exception as e:
         log(f"Error loading calibration data: {str(e)}")
         log("Falling back to dummy calibration values")
