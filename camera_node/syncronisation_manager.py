@@ -48,6 +48,7 @@ class SyncManager:
         """Check if synchronization conditions are met"""
         with self.sync_lock:
             ready_count = sum(1 for info in self.nodes.values() if info.ready)
+            log(f"ready count: {ready_count}")
             if ready_count >= self.expected_nodes:
                 log(f"Node {self.node_id}: All nodes synchronized ({ready_count}/{self.expected_nodes})")
                 return True
@@ -66,6 +67,7 @@ class SyncManager:
         for node_id, info in self.nodes.items():
             if node_id != self.node_id:  # Don't send to self
                 try:
+                    log(f"sending broadcast message to {self.node_id} with info {info}")
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     sock.sendto(encoded_message, (info.ip, info.port))
                 except Exception as e:
@@ -96,16 +98,13 @@ class SyncManager:
 
     def node_ready(self, node_id: str):
         """Mark a node as ready for synchronization."""
-        with self.sync_lock:
-            log(f"marking node {node_id} as ready")
-            if node_id in self.nodes or node_id == self.node_id:
-                self.nodes[node_id].ready = True
-                ready_count = sum(1 for info in self.nodes.values() if info.ready)
-                log(f"Node {self.node_id}: Node {node_id} ready. Total ready: {ready_count}/{self.expected_nodes}")
-                
-                if self._check_synchronization():
-                    self.is_synchronized = True
-                    self.sync_condition.notify_all()
+        log(f"marking node {node_id} as ready")
+        if node_id in self.nodes or node_id == self.node_id:
+            self.nodes[node_id].ready = True
+            
+            if self._check_synchronization():
+                self.is_synchronized = True
+                self.sync_condition.notify_all()
 
     def node_disconnected(self, node_id: str):
         """Handle node disconnection."""
