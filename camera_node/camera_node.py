@@ -15,8 +15,8 @@ class CameraNode:
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
         # self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)\
-        self.discovery_service = DiscoveryService(node_id, ip, port)
-        self.sync_manager = SyncManager(node_id, ip, port, self.discovery_service)
+        # self.discovery_service = DiscoveryService(node_id, ip, port)
+        self.sync_manager = SyncManager(node_id, ip, port)
         
         # Initialise other attributes
         self.neighbors = neighbors
@@ -26,7 +26,7 @@ class CameraNode:
         self.threads = []
 
     def start(self):
-        threading.Thread(target=self.discovery_service.run_discovery_listener, daemon=True).start()
+        # threading.Thread(target=self.discovery_service.run_discovery_listener, daemon=True).start()
         # First synchronize all nodes
         self.sync_manager.synchronise_start()
 

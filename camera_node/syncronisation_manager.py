@@ -14,7 +14,7 @@ class NodeInfo:
     last_seen: float = 0.0
 
 class SyncManager:
-    def __init__(self, node_id: str, self_ip: str, self_port: int, discovery_service):
+    def __init__(self, node_id: str, self_ip: str, self_port: int):
         """
         Initialize the SyncManager with automatic node discovery.
         
@@ -28,7 +28,7 @@ class SyncManager:
         self.is_synchronized = False
         self.running = True
         self.expected_nodes = 1  # Start with 1 (self), will be updated during discovery
-        self.discovery_service = discovery_service
+        # self.discovery_service = discovery_service
         
         # Node tracking
         self.nodes: Dict[str, NodeInfo] = {
