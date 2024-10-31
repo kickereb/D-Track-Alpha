@@ -114,7 +114,7 @@ class RoutingTableManager:
         }
         data = json.dumps(message).encode()
         
-        for neighbor_id, (ip, port, _) in self.neighbors.items():
+        for neighbor_id, (ip, port) in self.neighbors.items():
             try:
                 debug_log('NETWORK', 
                     f"Node {self.node_id} sending to neighbor {neighbor_id} at {ip}:{port+1}")

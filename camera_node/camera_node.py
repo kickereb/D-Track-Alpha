@@ -38,10 +38,11 @@ class CameraNode:
         # Get the final list of active nodes
         active_nodes = self.sync_manager.get_active_nodes()
         log(f"Node {self.node_id}: Synchronized with nodes: {active_nodes}")
+
+        now = datetime.datetime.now()
+        log(now)
         
         # Initialize components with discovered nodes
-        print(active_nodes)
-        exit(0)
         self.routing_table_manager = RoutingTableManager(
             self.node_id,
             self.sync_manager.nodes[self.node_id].ip,
