@@ -6,18 +6,18 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# Function to install NTP if not present
+# Function to install NTPsec if not present
 install_ntp() {
     if ! command -v ntpd &> /dev/null; then
-        echo "Error: NTP is not installed. In an offline environment, please install NTP manually using your local package repository."
+        echo "Error: NTPsec is not installed. In an offline environment, please install NTPsec manually using your local package repository."
         exit 1
     fi
 }
 
 # Function to backup existing config
 backup_config() {
-    if [ -f /etc/ntp.conf ]; then
-        cp /etc/ntp.conf /etc/ntp.conf.backup.$(date +%Y%m%d_%H%M%S)
+    if [ -f /etc/ntpsec/ntp.conf ]; then
+        cp /etc/ntpsec/ntp.conf /etc/ntpsec/ntp.conf.backup.$(date +%Y%m%d_%H%M%S)
     fi
 }
 
@@ -32,7 +32,10 @@ get_local_network() {
 configure_master() {
     local network=$1
     
-    cat > /etc/ntp.conf << EOL
+    # Ensure directory exists
+    mkdir -p /etc/ntpsec
+    
+    cat > /etc/ntpsec/ntp.conf << EOL
 # Master NTP Server Configuration (Stratum 0)
 # Restrict access to local network only
 restrict default ignore
@@ -46,17 +49,17 @@ server 127.127.1.0 prefer
 fudge 127.127.1.0 stratum 0
 
 # Drift file
-driftfile /var/lib/ntp/drift
+driftfile /var/lib/ntpsec/ntp.drift
 
 # Statistics logging
-statsdir /var/log/ntpstats/
+statsdir /var/log/ntpsec/
 statistics loopstats peerstats clockstats
 filegen loopstats file loopstats type day enable
 filegen peerstats file peerstats type day enable
 filegen clockstats file clockstats type day enable
 
 # Logging
-logfile /var/log/ntp.log
+logfile /var/log/ntpsec/ntp.log
 
 # Disable all pools and default servers
 disable pool
@@ -64,8 +67,8 @@ disable server
 EOL
 
     # Create stats directory if it doesn't exist
-    mkdir -p /var/log/ntpstats/
-    chmod 755 /var/log/ntpstats/
+    mkdir -p /var/log/ntpsec/
+    chmod 755 /var/log/ntpsec/
 }
 
 # Function to configure client node (stratum 1)
@@ -73,7 +76,10 @@ configure_client() {
     local master_ip=$1
     local network=$2
     
-    cat > /etc/ntp.conf << EOL
+    # Ensure directory exists
+    mkdir -p /etc/ntpsec
+    
+    cat > /etc/ntpsec/ntp.conf << EOL
 # Client NTP Configuration (Stratum 1)
 # Restrict access to local network only
 restrict default ignore
@@ -86,17 +92,17 @@ restrict ${network} mask 255.255.255.0 nomodify notrap
 server $master_ip prefer iburst
 
 # Drift file
-driftfile /var/lib/ntp/drift
+driftfile /var/lib/ntpsec/ntp.drift
 
 # Statistics logging
-statsdir /var/log/ntpstats/
+statsdir /var/log/ntpsec/
 statistics loopstats peerstats clockstats
 filegen loopstats file loopstats type day enable
 filegen peerstats file peerstats type day enable
 filegen clockstats file clockstats type day enable
 
 # Logging
-logfile /var/log/ntp.log
+logfile /var/log/ntpsec/ntp.log
 
 # Disable all pools and default servers
 disable pool
@@ -104,8 +110,8 @@ disable server
 EOL
 
     # Create stats directory if it doesn't exist
-    mkdir -p /var/log/ntpstats/
-    chmod 755 /var/log/ntpstats/
+    mkdir -p /var/log/ntpsec/
+    chmod 755 /var/log/ntpsec/
 }
 
 # Parse command line arguments
@@ -154,22 +160,25 @@ else
 fi
 
 # Create and set permissions for log file
-touch /var/log/ntp.log
-chmod 640 /var/log/ntp.log
+mkdir -p /var/log/ntpsec
+touch /var/log/ntpsec/ntp.log
+chmod 640 /var/log/ntpsec/ntp.log
+
+# Create drift directory
+mkdir -p /var/lib/ntpsec
+chmod 755 /var/lib/ntpsec
 
 # Restart NTP service
-if systemctl is-active --quiet ntp; then
-    systemctl restart ntp
-elif systemctl is-active --quiet ntpd; then
-    systemctl restart ntpd
+if systemctl is-active --quiet ntpsec; then
+    systemctl restart ntpsec
 else
-    echo "Warning: Could not detect NTP service. Please restart it manually."
+    echo "Warning: Could not detect NTPsec service. Please restart it manually."
 fi
 
-echo "NTP configuration completed successfully!"
+echo "NTPsec configuration completed successfully!"
 
 # Display status information
-echo -e "\nChecking NTP status..."
+echo -e "\nChecking NTPsec status..."
 if command -v ntpq &> /dev/null; then
     echo -e "\nPeer status:"
     ntpq -p
