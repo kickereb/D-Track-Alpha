@@ -429,11 +429,11 @@ class DetectionManager:
         self.person_detector = person_detector
         self.coordinate_transformer = coordinate_transformer
         
-    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray) -> None:
+    def initialise(self, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec) -> None:
         """initialise all components"""
         self.image_capture.initialise()
         self.person_detector.initialise()
-        self.coordinate_transformer.initialise(camera_matrix, dist_coeffs)
+        self.coordinate_transformer.initialise(camera_matrix, dist_coeffs, rvec, tvec)
     
     def detect_people(self, tracking_id_start: int) -> List[PersonDetection]:
         """Run complete detection pipeline
