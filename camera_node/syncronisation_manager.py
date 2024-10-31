@@ -175,8 +175,8 @@ class SyncManager:
         self._reset_timer()
         
         # Start periodic discovery
-        self.discovery_thread = threading.Thread(target=self._periodic_discovery, daemon=True)
-        self.discovery_thread.start()
+        # self.discovery_thread = threading.Thread(target=self._periodic_discovery, daemon=True)
+        # self.discovery_thread.start()
         
         # Start timer thread
         self.timer_thread = threading.Thread(target=self._timer_loop, daemon=True)

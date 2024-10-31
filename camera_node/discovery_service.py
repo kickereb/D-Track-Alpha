@@ -123,7 +123,6 @@ class DiscoveryService:
                 
                 while self.running:
                     try:
-                        print("trying")
                         data, addr = sock.recvfrom(1024)
                         threading.Thread(
                             target=self._handle_discovery_request,
