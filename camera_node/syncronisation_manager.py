@@ -168,8 +168,8 @@ class SyncManager:
     def start_timer(self):
         """Start the synchronization timer thread"""
         # Perform initial discovery
-        initial_nodes = self.discover_nodes()
-        log(f"Node {self.node_id}: Initial discovery found {initial_nodes} nodes")
+        # initial_nodes = self.discover_nodes()
+        # log(f"Node {self.node_id}: Initial discovery found {initial_nodes} nodes")
         
         # Start the timer
         self._reset_timer()
