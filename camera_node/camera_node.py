@@ -66,8 +66,6 @@ class CameraNode:
         for thread in self.threads:
             thread.start()
 
-    def 
-
     def stop(self):
         """Recursively stop all threads and cleanup resources"""
         log("Initiating camera node shutdown...")
