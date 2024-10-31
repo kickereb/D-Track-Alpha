@@ -16,7 +16,7 @@ class CameraNode:
                                                                                 self.routing_table_manager, 
                                                                                 camera_matrix, 
                                                                                 dist_coeffs)
-        # self.sync_manager = SyncManager(self.network_manager, len(neighbors) + 1)
+        self.sync_manager = SyncManager(node_id, len(neighbors) + 1)
         
         # Initialise other attributes
         self.neighbors = neighbors
@@ -26,13 +26,13 @@ class CameraNode:
         self.threads = []
 
     def start(self):
-        # TODO: Syncronise nodes at initialisation.
-        # First synchronise all of the nodes by waiting until everyone sends a ready signal
-        # self.sync_manager.synchronise_start()
-        # # Wait until synchronised before starting other threads
-        # with self.sync_manager.sync_condition:
-        #     while not self.is_synchronized:
-        #         self.sync_condition.wait()
+        # First synchronize all nodes
+        self.sync_manager.synchronise_start()
+
+        # Wait until synchronized before starting other threads
+        if not self.sync_manager.wait_for_sync(timeout=30.0):  # 30 second total timeout
+            log(f"Node {self.node_id}: Synchronization timeout")
+            return False
 
         # Start all necessary tasks a camera node needs to acheive in seperate threads
         self.threads = [
