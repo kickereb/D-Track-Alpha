@@ -67,7 +67,7 @@ class SyncManager:
         for node_id, info in self.nodes.items():
             if node_id != self.node_id:  # Don't send to self
                 try:
-                    log(f"sending broadcast message to {self.node_id} with info {info}")
+                    # log(f"sending broadcast message to {self.node_id} with info {info}")
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                     sock.sendto(encoded_message, (info.ip, self.listen_port))
                 except Exception as e:
