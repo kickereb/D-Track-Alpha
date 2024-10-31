@@ -217,7 +217,7 @@ class DTrackDB:
             }
         return None
     
-    def storeRefreshToken(self, userID: int, token: str, expiry: datetime) -> bool:
+    def storeRefreshToken(self, userID: int, token: str, expiry: datetime):
         """Store a refresh token"""
         try:
             conn = sqlite3.connect(self.dbPath)

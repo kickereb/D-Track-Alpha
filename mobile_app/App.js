@@ -1,7 +1,7 @@
 // "use client";
 import {Canvas, Path, Skia, vec, Points, Rect, Text, matchFont, center } from "@shopify/react-native-skia";
 import React, {useState, useEffect, createContext, useContext } from "react";
-import { StyleSheet, View, Dimensions, Platform, Button, useWindowDimensions } from "react-native";
+import { StyleSheet, View, TouchableOpacity, Platform, Button, useWindowDimensions, Text as DefText } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createDrawerNavigator, DrawerContentScrollView, DrawerItemList, DrawerItem } from "@react-navigation/drawer";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -27,6 +27,7 @@ const togglePath = (target) => {
 function MainScreen({ navigation }) {
   const {d, setData} = React.useContext(DataContext);
   const {v, setVisibility} = React.useContext(VisibilityContext);
+  const { onLogout } = useAuth();
 
   var outPath = [];
   var outPoints = [];
@@ -35,20 +36,10 @@ function MainScreen({ navigation }) {
   const paddingY = 50;
   const offset = 30;
 
-  // useEffect(() => {
-  //   const subscription = Dimensions.addEventListener(
-  //     'change',
-  //     ({window, screen}) => {
-  //       setDimensions({window, screen});
-  //     },
-  //   );
-  //   return () => subscription?.remove();
-  // });
-
   const {width, height} = useWindowDimensions();
   
 
-  var definedArea = {w:500, h:500};
+  var definedArea = {w:500, h:700};
 
   // const cDim = {w:350, h:400};
 
@@ -59,6 +50,7 @@ function MainScreen({ navigation }) {
   var scaleX = drawDim.w/definedArea.w;
   var scaleY = drawDim.h/definedArea.h;
 
+
   const allowedColors = ["#e60049", "#0bb4ff", "#50e991", "#e6d800", "#9b19f5", "#ffa300", "#dc0ab4", "#b3d4ff", "#00bfa0"];
 
   const sortData = (dataArr) => {
@@ -67,14 +59,14 @@ function MainScreen({ navigation }) {
     
     for (var i=0;i<dataArr.length;i++) {
       if (!seen.some(k => k === dataArr[i].target)) {
-        var temp = [{x: dataArr[i].x, y: dataArr[i].y, target: dataArr[i].target, seq: dataArr[i].seq}];
+        var temp = [{x: dataArr[i].x, y: dataArr[i].y, target: dataArr[i].target, seq: dataArr[i].id}];
         seen.push(dataArr[i].target);
         result.push(temp);
         if (!visible.some(t => t.target === dataArr[i].target)) {
           visible.push({v:1, target: dataArr[i].target})
         }
       } else {
-        result[seen.indexOf(dataArr[i].target)].push({x: dataArr[i].x, y: dataArr[i].y, target: dataArr[i].target, seq: dataArr[i].seq});
+        result[seen.indexOf(dataArr[i].target)].push({x: dataArr[i].x, y: dataArr[i].y, target: dataArr[i].target, seq: dataArr[i].id});
       }
     }
 
@@ -93,7 +85,7 @@ function MainScreen({ navigation }) {
     var temp = dataArray;
     for (var i=0;i<temp.length;i++) {
       for (var j=0;j<temp[i].length;j++) {
-        temp[i][j].x = temp[i][j].x*scaleX;
+        temp[i][j].x = temp[i][j].x*scaleX
         temp[i][j].y = temp[i][j].y*scaleY;
         // Il include it here after testing
         // dArr[i][j].y = cDim.h - dArr[i][j].y
@@ -148,7 +140,7 @@ function MainScreen({ navigation }) {
     const font = matchFont(fontStyle);
 
     const xTicks = 5;
-    const yTicks = 5;
+    const yTicks = 7;
 
     // const xTicks = parseInt(definedArea.w/100);
     // const yTicks = parseInt(definedArea.h/100);
@@ -224,7 +216,8 @@ function MainScreen({ navigation }) {
         const response = await axios.get(`${API_URL}/`)
           setData(response.data);
       } catch (error) {
-        console.log(error.response.data.err, error).then(onLogout);
+        console.log(error.response.data.err, error);
+        onLogout();
       }
     }
     fetchData();
@@ -256,17 +249,26 @@ function MainScreen({ navigation }) {
             {/* <Path path={p} style="stroke" strokeWidth={4} color="#3EB489"/>
             <Points points={pts} mode="points" color="red" style="fill" strokeWidth={6}></Points> */}
           </Canvas>
-          <Button onPress={async ()=> {
+          <TouchableOpacity style={styles.refreshButton} onPress={async ()=> {
               await axios.get(`${API_URL}/`).then(response => response.data)
               .then(data => setData(data))
-              .catch(error => {console.error(error); onLogout});setVisibility(visible)
+              .catch(error => {console.error(error);onLogout()});
+              
+              setVisibility(visible)
               } } 
-            title="Refresh Data"></Button>
+            title="Refresh Data">
+
+              <DefText style={styles.refreshText}>Refresh Data</DefText>
+
+            </TouchableOpacity>
           {/* <Button onPress={}></Button> */}
       </View>
     </>
   )
 }
+
+
+
 
 function ListItems(props) {
   const {v, setVisibility} = React.useContext(VisibilityContext);
@@ -279,7 +281,7 @@ function ListItems(props) {
       out.push(<DrawerItem key={tar} label={tar} onPress={async ()=>{togglePath(tar); 
         await axios.get(`${API_URL}/`).then(response => response.data)
               .then(data => setData(data))
-              .catch(error => {console.error(error); onLogout});
+              .catch(error => {console.error(error); onLogout()});
       }}></DrawerItem>)
     }
     return out;
@@ -318,7 +320,9 @@ function AuthNavi() {
           authState.authorised ? 
           <Auth.Navigator>
             <Auth.Screen name="Home" component={PathList} options={{
-              headerRight: () => <Button onPress={onLogout} title = "Log out"/>
+              headerRight: () => <TouchableOpacity style={styles.logoutButton} onPress={onLogout} title = "Log out">
+                <DefText Style={styles.logoutText}>Log out</DefText>
+              </TouchableOpacity>
             }} />
           </Auth.Navigator>:
           <AuthNavigator />
@@ -365,5 +369,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-
+  refreshButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    width: "40%",
+    paddingHorizontal: 32,
+    borderRadius: 3,
+    elevation: 3,
+    backgroundColor: '#e0e0e0',
+  },
+  refreshText: {
+    fontSize: 16,
+    color:"#1f1e33"
+  },
+  logoutText: {
+    fontSize: 18,
+    color:"#1f1e33"
+  }
 });
