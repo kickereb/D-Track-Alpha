@@ -115,21 +115,30 @@ class SyncManager:
                 log(f"Node {self.node_id}: Node {node_id} disconnected. Adjusting expected nodes to {self.expected_nodes}")
                 self._broadcast_status(False)
 
-    def wait_for_sync(self, timeout: float = None) -> bool:
-        """Wait for synchronization to complete."""
+def wait_for_sync(self, timeout: float = None) -> bool:
+    """Wait for synchronization to complete while continuously broadcasting status."""
+    start_time = time.time()
+    
+    while True:
+        # Broadcast status
+        self._broadcast_status(True)
+        
+        # Check if synchronized
         with self.sync_condition:
+            if self.is_synchronized:
+                return True
+                
+            # Check timeout
             if timeout is not None:
-                end_time = time.time() + timeout
-                while not self.is_synchronized and time.time() < end_time:
-                    remaining = end_time - time.time()
-                    if remaining <= 0:
-                        break
-                    self.sync_condition.wait(timeout=remaining)
-            else:
-                while not self.is_synchronized:
-                    self.sync_condition.wait()
+                remaining = (start_time + timeout) - time.time()
+                if remaining <= 0:
+                    return False
                     
-            return self.is_synchronized
+                # Wait for a short interval to avoid too frequent broadcasting
+                self.sync_condition.wait(timeout=min(0.1, remaining))
+            else:
+                # No timeout, just wait a short interval
+                self.sync_condition.wait(timeout=0.1)
 
     def stop(self):
         """Stop the synchronization manager and cleanup resources"""
