@@ -9,6 +9,7 @@ from collections import defaultdict
 from utils.logger import log
 from local_detector_pipeline import *
 from tqdm import tqdm
+from global_tracker import GlobalTracker
 
 # Debug flag to control verbose logging
 DEBUG = True
@@ -152,13 +153,16 @@ class DistributedPersonTrackerStateMachine:
         self.listener_thread.start()
         log(f"DistributedPersonTrackerStateMachine initialised for node {node_id}")
 
-        # Initialise detection system
+        # Initialise local detection system
         self.detection_manager = DetectionManager(
             image_capture=PiCamera2Capture(),
             person_detector=YOLOv11NCNNPersonDetector(),
             coordinate_transformer=OpenCVCoordinateTransformer()
         )
         self.detection_manager.initialise(camera_matrix, dist_coeffs)
+
+        # Initialise global tracker
+        self.global_tracker = GlobalTracker()
 
     def run_cycle_indefintely(self):
         """Main cycle loop with strict timing controls"""
@@ -302,7 +306,7 @@ class DistributedPersonTrackerStateMachine:
             
             # Process detections
             process_start = time.time()*1000
-            self._process_frame(self.current_frame)
+            self.global_tracker.process_frame(self.current_frame)
             log(f"Frame processing took {time.time()*1000 - process_start:.3f}ms")
             
             # Cleanup old frame data
@@ -347,14 +351,6 @@ class DistributedPersonTrackerStateMachine:
             
         return len(self.current_frame.detections) == len(self.routing_table_manager.routing_table)
 
-    def _process_frame(self, frame: FrameData):
-        """Process all detections to create global view"""
-        # TODO: Implement global view creation logic here
-        for node_id, detections in frame.detections.items():
-            for detection in detections:
-                log(f"Node {node_id} detection: {detection}")
-
-
     def _continuous_listener(self):
         """
         Background thread that continuously listens for incoming detection messages.
@@ -387,7 +383,7 @@ class DistributedPersonTrackerStateMachine:
         """
         received_frame = message['frame_number']
         source_node = message['source_node']
-        detections = [PersonDetection(**d) for d in message['detections']]
+        detections = [PersonDetection.from_dict(d) for d in message['detections']]
         
         log(f"Processing detection from node {source_node} for frame {received_frame}")
         

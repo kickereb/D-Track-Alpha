@@ -1,5 +1,6 @@
 import argparse
 import time
+import yaml
 from camera_node import CameraNode
 from utils.logger import log
 import numpy as np
