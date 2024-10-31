@@ -387,7 +387,7 @@ class DistributedPersonTrackerStateMachine:
         """
         received_frame = message['frame_number']
         source_node = message['source_node']
-        detections = [Detection(**d) for d in message['detections']]
+        detections = [PersonDetection(**d) for d in message['detections']]
         
         log(f"Processing detection from node {source_node} for frame {received_frame}")
         
