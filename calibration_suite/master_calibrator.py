@@ -14,7 +14,7 @@ BROKER_ADDR = "localhost"
 BROKER_PORT = 1883
 
 # List of hosts
-HOSTS = ["192.168.65.51", "192.168.65.52"]  # Add or remove hosts as needed
+HOSTS = ["10.0.0.15", "10.0.0.17"]  # Add or remove hosts as needed
 
 # ChArUco board parameters
 CHARUCO_BOARD_SIZE = (5, 5)  # (number_x_square, number_y_square)

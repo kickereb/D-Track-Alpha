@@ -1,0 +1,210 @@
+2024-10-31 17:14:27,605 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:14:27,606 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:14:27,640 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:14:27,672 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:14:27,715 - INFO - Authentication (publickey) failed.
+2024-10-31 17:14:27,725 - INFO - Authentication (password) successful!
+2024-10-31 17:14:27,768 - INFO - Authentication (publickey) failed.
+2024-10-31 17:14:27,787 - INFO - Authentication (password) successful!
+2024-10-31 17:14:27,954 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:14:39,216 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:23:09,746 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:23:09,746 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:23:09,782 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:23:09,783 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:23:09,850 - INFO - Authentication (publickey) failed.
+2024-10-31 17:23:09,853 - INFO - Authentication (publickey) failed.
+2024-10-31 17:23:09,860 - INFO - Authentication (password) successful!
+2024-10-31 17:23:09,863 - INFO - Authentication (password) successful!
+2024-10-31 17:23:09,985 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:23:18,015 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:25:00,715 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:25:00,715 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:25:00,748 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:25:00,749 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:25:00,820 - INFO - Authentication (publickey) failed.
+2024-10-31 17:25:00,821 - INFO - Authentication (publickey) failed.
+2024-10-31 17:25:00,830 - INFO - Authentication (password) successful!
+2024-10-31 17:25:00,831 - INFO - Authentication (password) successful!
+2024-10-31 17:25:00,960 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:25:08,997 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:25:49,547 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:25:49,547 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:25:49,580 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:25:49,581 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:25:49,648 - INFO - Authentication (publickey) failed.
+2024-10-31 17:25:49,652 - INFO - Authentication (publickey) failed.
+2024-10-31 17:25:49,658 - INFO - Authentication (password) successful!
+2024-10-31 17:25:49,662 - INFO - Authentication (password) successful!
+2024-10-31 17:25:49,769 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py broker_ip 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:25:58,021 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py broker_ip 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:26:10,053 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:26:10,053 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:26:10,085 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:26:10,087 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:26:10,154 - INFO - Authentication (publickey) failed.
+2024-10-31 17:26:10,155 - INFO - Authentication (publickey) failed.
+2024-10-31 17:26:10,165 - INFO - Authentication (password) successful!
+2024-10-31 17:26:10,165 - INFO - Authentication (password) successful!
+2024-10-31 17:26:10,288 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py A 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:26:18,379 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/dev/dtrack && python mqtt_subscriber.py A 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:28:21,368 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:28:21,368 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:28:21,446 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:28:21,447 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:28:21,518 - INFO - Authentication (publickey) failed.
+2024-10-31 17:28:21,529 - INFO - Authentication (password) successful!
+2024-10-31 17:28:21,541 - INFO - Authentication (publickey) failed.
+2024-10-31 17:28:21,552 - INFO - Authentication (password) successful!
+2024-10-31 17:28:21,704 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && python mqtt_subscriber.py A 10.0.0.14'
+
+Exit code: 2
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:28:21,723 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && python mqtt_subscriber.py A 10.0.0.14'
+
+Exit code: 2
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:28:37,395 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:28:37,395 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:28:37,428 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:28:37,429 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:28:37,496 - INFO - Authentication (publickey) failed.
+2024-10-31 17:28:37,507 - INFO - Authentication (password) successful!
+2024-10-31 17:28:37,541 - INFO - Authentication (publickey) failed.
+2024-10-31 17:28:37,552 - INFO - Authentication (password) successful!
+2024-10-31 17:28:37,674 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && python slave_calibrator.py A 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:28:37,734 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && python slave_calibrator.py A 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+

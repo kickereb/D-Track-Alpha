@@ -4,7 +4,7 @@ import threading
 import logging
 from fabric import Connection
 
-PATH_TO_MAIN = "/home/dtrack/dev/dtrack"
+PATH_TO_MAIN = "/home/dtrack/D-Track-Alpha/calibration_suite/"
 
 def setup_logging():
     logging.basicConfig(filename='mqtt_subscribers.log', level=logging.INFO,
@@ -22,7 +22,7 @@ def start_subscriber(host):
     logging.info(f"Starting subscriber on {host}")
     try:
         connection = Connection(host, user="dtrack", connect_kwargs={"password": "dtrack"})
-        result = connection.run(f"cd {PATH_TO_MAIN} && python mqtt_subscriber.py", pty=True)
+        result = connection.run(f"cd {PATH_TO_MAIN} && python slave_calibrator.py A 10.0.0.14", pty=True)
         logging.info(f"Subscriber on {host} output: {result.stdout}")
     except Exception as e:
         logging.error(f"Error starting subscriber on {host}: {str(e)}")

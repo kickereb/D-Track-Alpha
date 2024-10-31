@@ -68,9 +68,8 @@ def main(broker_ip, broker_port):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start the slave calibration software for a camera node.")
-    parser.add_argument("node_id", help="ID of this node")
     parser.add_argument("broker_ip", default="192.168.65.1", help="IP address of the MQTT broker")
-    parser.add_argument("broker_port", type=int, default=1883 help="Port number of MQTT broker")
+    parser.add_argument("broker_port", type=int, default=1883, help="Port number of MQTT broker")
     args = parser.parse_args(broker_ip, broker_port)
 
     main(broker_ip, broker_port)
