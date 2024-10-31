@@ -1,6 +1,7 @@
 import threading
 import numpy as np
 import datetime
+import time
 
 from distributed_person_tracker import DistributedPersonTrackerStateMachine
 from routing_table_manager import RoutingTableManager
@@ -61,7 +62,7 @@ class CameraNode:
         actual_start = datetime.datetime.now()
         log(f"Node {self.node_id}: Starting at {actual_start}")
         
-        # Initialise components with discovered nodes
+        # Initialis e components with discovered nodes
         self.routing_table_manager = RoutingTableManager(
             self.node_id,
             self.sync_manager.nodes[self.node_id].ip,
