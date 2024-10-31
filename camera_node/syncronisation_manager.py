@@ -69,7 +69,7 @@ class SyncManager:
                 try:
                     log(f"sending broadcast message to {self.node_id} with info {info}")
                     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    sock.sendto(encoded_message, (info.ip, info.port))
+                    sock.sendto(encoded_message, (info.ip, self.listen_port))
                 except Exception as e:
                     log(f"Node {self.node_id}: Error sending status to {node_id}: {e}")
                 finally:
