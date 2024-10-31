@@ -6,6 +6,7 @@ import platform
 import threading
 import time
 from typing import Dict, Tuple
+from utils.logger import log
 
 def get_ip_address(interface='eth0'):
     return ni.ifaddresses(interface)[ni.AF_INET][0]['addr']
@@ -72,7 +73,9 @@ def _scan_host(ip: str, neighbors: Dict[str, Tuple[str, int, int]], base_port: i
         local_ip: Local machine's IP address to skip
     """
     if ip != local_ip and _ping_host(ip):
+        log(f"checking hostname for {ip}")
         hostname = _check_hostname(ip)
+        log(f"hostname: {hostname}")
         if 'dtrack' in hostname:
             # Extract node ID from hostname if possible, otherwise use IP
             try:

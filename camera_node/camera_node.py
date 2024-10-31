@@ -4,6 +4,7 @@ import numpy as np
 from distributed_person_tracker import DistributedPersonTrackerStateMachine
 from routing_table_manager import RoutingTableManager
 
+from discovery_service import DiscoveryService
 from syncronisation_manager import SyncManager
 from utils.logger import log
 
@@ -14,6 +15,7 @@ class CameraNode:
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
         # self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)\
+        self.discovery_service = DiscoveryService(node_id, ip, port)
         self.sync_manager = SyncManager(node_id, ip, port)
         
         # Initialise other attributes
@@ -53,6 +55,7 @@ class CameraNode:
 
         # Start all necessary tasks a camera node needs to acheive in seperate threads
         self.threads = [
+            threading.Thread(target=self.discovery_service.run_discovery_listener, daemon=True),
             # We need to handle continuous routing table updates to handle drop-outs or high network latency etc.
             # Potential extension task: Utilise network delay as route weighting.
             threading.Thread(target=self.routing_table_manager.start(), daemon=True),
@@ -62,6 +65,8 @@ class CameraNode:
         
         for thread in self.threads:
             thread.start()
+
+    def 
 
     def stop(self):
         """Recursively stop all threads and cleanup resources"""
