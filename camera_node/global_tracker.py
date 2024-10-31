@@ -6,6 +6,7 @@ import time
 import sys
 from datetime import datetime
 from collections import defaultdict
+import requests
 
 def log(message):
     timestamp = datetime.now().strftime('%H:%M:%S.%f')
@@ -143,6 +144,8 @@ class GlobalTracker:
             self.last_positions[global_id] = pos
             self.last_seen[global_id] = self.current_frame
             
+            self._send_to_backend({cluster_id+"",len(self.last_positions(global_id)),pos[0]+"",pos[2]+""})
+            
             log(f"Node {node_id} detection: {detection} (Track {global_id})")
     
     def _cleanup_inactive_tracks(self) -> None:
@@ -260,3 +263,9 @@ class GlobalTracker:
                     
         except Exception as e:
             log(f"Error logging tracking matches: {str(e)}")
+    
+    def _send_to_backend(self, data) -> None:
+        """Send world coordinates to app backend web api"""
+        server_addr = "http://10.0.0.169:3000"
+        requests.post(url=server_addr, data=data)
+        
