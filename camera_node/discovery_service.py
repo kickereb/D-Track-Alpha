@@ -1,7 +1,7 @@
 import socket
 import json
 import threading
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from utils.logger import log
 
 class DiscoveryService:
@@ -27,6 +27,50 @@ class DiscoveryService:
             'type': 'dtrack',  # Identifies this as a distributed tracking node
             'status': 1  # 1 indicates active
         }
+
+    def send_discovery_request(self, ip: str) -> Tuple[str, Dict]:
+        """
+        Send a discovery request to a specific IP
+        
+        Args:
+            ip: IP address to send discovery request to
+            
+        Returns:
+            Tuple of (IP, response_data) if successful, (IP, None) if failed
+        """
+        try:
+            # Create UDP socket for discovery request
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.settimeout(self.discovery_timeout)
+                
+                # Prepare discovery request
+                request = {
+                    'type': 'discovery_request'
+                }
+                
+                # Send request
+                sock.sendto(
+                    json.dumps(request).encode('utf-8'),
+                    (ip, self.discovery_port)
+                )
+                
+                # Wait for response
+                try:
+                    data, _ = sock.recvfrom(1024)
+                    response = json.loads(data.decode('utf-8'))
+                    
+                    if response.get('type') == 'discovery_response':
+                        log(f"Received discovery response from {ip}")
+                        return ip, response.get('node')
+                except socket.timeout:
+                    pass
+                except json.JSONDecodeError:
+                    pass
+                    
+        except Exception as e:
+            log(f"Error sending discovery request to {ip}: {str(e)}")
+            
+        return ip, None
         
     def _handle_discovery_request(self, data: bytes, addr: tuple) -> None:
         """
@@ -38,6 +82,7 @@ class DiscoveryService:
         """
         try:
             request = json.loads(data.decode('utf-8'))
+            print(request)
             
             # Only respond to discovery requests
             if request.get('type') == 'discovery_request':
@@ -78,6 +123,7 @@ class DiscoveryService:
                 
                 while self.running:
                     try:
+                        print("trying")
                         data, addr = sock.recvfrom(1024)
                         threading.Thread(
                             target=self._handle_discovery_request,

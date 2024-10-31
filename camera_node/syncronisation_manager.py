@@ -3,7 +3,7 @@ import time
 from typing import Dict, Tuple
 from dataclasses import dataclass
 from utils.logger import log
-from utils.network import discover_dtrack_hosts
+from utils.network import discover_dtrack_hosts, _scan_host
 
 @dataclass
 class NodeInfo:
@@ -14,7 +14,7 @@ class NodeInfo:
     last_seen: float = 0.0
 
 class SyncManager:
-    def __init__(self, node_id: str, self_ip: str, self_port: int):
+    def __init__(self, node_id: str, self_ip: str, self_port: int, discovery_service):
         """
         Initialize the SyncManager with automatic node discovery.
         
@@ -24,9 +24,11 @@ class SyncManager:
             self_port (int): Port number of this node
         """
         self.node_id = node_id
+        self.ip = self_ip
         self.is_synchronized = False
         self.running = True
         self.expected_nodes = 1  # Start with 1 (self), will be updated during discovery
+        self.discovery_service = discovery_service
         
         # Node tracking
         self.nodes: Dict[str, NodeInfo] = {
@@ -51,7 +53,25 @@ class SyncManager:
             int: Number of nodes discovered
         """
         try:
-            discovered = discover_dtrack_hosts()
+            neighbors = {}
+            threads = []
+            for i in range(1, 255):
+                network_prefix = (".").join(self.ip.split(".")[:2])
+                ip = f"{network_prefix}.{i}"
+                thread = threading.Thread(
+                    target=_scan_host, 
+                    args=(ip, neighbors, 5000, self.ip)
+                )
+                threads.append(thread)
+                thread.start()
+            
+            for thread in threads:
+                thread.join()
+
+            print(neighbors)
+            exit(0)
+            # discovered = self.discovery_service.send_discovery_request(neighbors)
+            
             with self.sync_lock:
                 new_nodes = False
                 for node_id, (ip, port, status) in discovered.items():

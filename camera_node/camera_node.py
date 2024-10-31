@@ -16,7 +16,7 @@ class CameraNode:
         self.dist_coeffs = dist_coeffs
         # self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)\
         self.discovery_service = DiscoveryService(node_id, ip, port)
-        self.sync_manager = SyncManager(node_id, ip, port)
+        self.sync_manager = SyncManager(node_id, ip, port, self.discovery_service)
         
         # Initialise other attributes
         self.neighbors = neighbors
@@ -26,6 +26,7 @@ class CameraNode:
         self.threads = []
 
     def start(self):
+        threading.Thread(target=self.discovery_service.run_discovery_listener, daemon=True).start()
         # First synchronize all nodes
         self.sync_manager.synchronise_start()
 
@@ -55,7 +56,6 @@ class CameraNode:
 
         # Start all necessary tasks a camera node needs to acheive in seperate threads
         self.threads = [
-            threading.Thread(target=self.discovery_service.run_discovery_listener, daemon=True),
             # We need to handle continuous routing table updates to handle drop-outs or high network latency etc.
             # Potential extension task: Utilise network delay as route weighting.
             threading.Thread(target=self.routing_table_manager.start(), daemon=True),
