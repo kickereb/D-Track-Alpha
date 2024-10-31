@@ -327,8 +327,6 @@ class DistributedPersonTrackerStateMachine:
             'detections': [d.to_dict() for d in detections]
         }
 
-        print(message)
-
         for dest_node in self.routing_table_manager.routing_table:
             if dest_node == self.node_id:
                 continue
