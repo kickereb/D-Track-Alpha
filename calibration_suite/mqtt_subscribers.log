@@ -304,3 +304,35 @@ Stdout: already printed
 Stderr: n/a (PTYs have no stderr)
 
 
+2024-10-31 17:41:02,847 - INFO - Starting subscriber on 10.0.0.15
+2024-10-31 17:41:02,848 - INFO - Starting subscriber on 10.0.0.17
+2024-10-31 17:41:02,880 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:41:02,913 - INFO - Connected (version 2.0, client OpenSSH_9.2p1)
+2024-10-31 17:41:02,950 - INFO - Authentication (publickey) failed.
+2024-10-31 17:41:02,961 - INFO - Authentication (publickey) failed.
+2024-10-31 17:41:02,972 - INFO - Authentication (password) successful!
+2024-10-31 17:41:03,004 - INFO - Authentication (publickey) failed.
+2024-10-31 17:41:03,015 - INFO - Authentication (publickey) failed.
+2024-10-31 17:41:03,033 - INFO - Authentication (password) successful!
+2024-10-31 17:41:21,569 - ERROR - Error starting subscriber on 10.0.0.15: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py A 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
+2024-10-31 17:41:23,651 - ERROR - Error starting subscriber on 10.0.0.17: Encountered a bad command exit code!
+
+Command: 'cd /home/dtrack/D-Track-Alpha/calibration_suite/ && sudo ./setup_node_for_calibration.sh && source camera-node/bin/activate && python slave_calibrator.py A 10.0.0.14'
+
+Exit code: 1
+
+Stdout: already printed
+
+Stderr: n/a (PTYs have no stderr)
+
+
