@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Set, Tuple
 import time
 import sys
+import json
 from datetime import datetime
 from collections import defaultdict
 import requests
@@ -267,5 +268,5 @@ class GlobalTracker:
     def _send_to_backend(self, data) -> None:
         """Send world coordinates to app backend web api"""
         server_addr = "http://10.0.0.169:3000/"
-        requests.post(url=server_addr, data=data)
+        requests.post(url=server_addr, data=json.dumps(data).encode())
         
