@@ -252,8 +252,8 @@ class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
     def transform(self, bbox: BoundingBox, frame_size: Tuple[int, int]) -> WorldCoordinates:
         """Transform a bounding box to world coordinates."""
         # Extract the bottom center point of the bounding box
-        u = (bbox.xmin + bbox.xmax) / 2
-        v = bbox.ymax
+        u = (bbox.x1 + bbox.x2) / 2
+        v = bbox.y2
         
         # Assuming we have rotation and translation vectors for the camera
         # These should be properly initialized or passed to the method
@@ -380,12 +380,12 @@ class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
                 valid_world_coords = []
                 
                 for view in person['views']:
-                    viewNum, xmin, ymin, xmax, ymax = view.values()
-                    if xmin == -1:  # Skip invalid views
+                    viewNum, x1, y1, x2, y2 = view.values()
+                    if x1 == -1:  # Skip invalid views
                         continue
                     
                     # Get the foot position of the person
-                    uvCoord = np.array([(xmin + xmax) / 2, ymax, 1])
+                    uvCoord = np.array([(x1 + x2) / 2, y2, 1])
                     mtx = camera_matrices[viewNum]
                     dist = dist_coef[viewNum]
                     r = np.asarray(rvec[viewNum])
