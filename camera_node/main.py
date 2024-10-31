@@ -20,9 +20,6 @@ def load_calibration(camera_id: str = None):
         FileNotFoundError: If calibration file is not found
         ValueError: If calibration data is invalid
     """
-    # Setup logging
-    logger = logging.getLogger(__name__)
-    
     # Determine file path
     if camera_id:
         filename = f"data/calibrations/{camera_id}_calibration.yml"
@@ -61,21 +58,21 @@ def load_calibration(camera_id: str = None):
         return camera_matrix, dist_coeffs
         
     except FileNotFoundError:
-        logger.error(f"Calibration file not found: {filename}")
-        logger.warning("Falling back to dummy calibration values")
+        log(f"Calibration file not found: {filename}")
+        log("Falling back to dummy calibration values")
         return get_dummy_calibration(
             calib_data.get('intrinsic', {}).get('img_width', 1280),
             calib_data.get('intrinsic', {}).get('img_height', 720)
         )
     except Exception as e:
-        logger.error(f"Error loading calibration data: {str(e)}")
-        logger.warning("Falling back to dummy calibration values")
+        log(f"Error loading calibration data: {str(e)}")
+        log("Falling back to dummy calibration values")
         return get_dummy_calibration()
 
 def print_calibration_info(camera_matrix: np.ndarray, 
                           dist_coeffs: np.ndarray,
-                          reprojection_error: Optional[float] = None,
-                          total_points: Optional[int] = None):
+                          reprojection_error = None,
+                          total_points = None):
     """
     Prints readable information about the calibration parameters
     """
