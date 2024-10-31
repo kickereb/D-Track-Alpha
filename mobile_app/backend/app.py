@@ -3,6 +3,7 @@ from flask_cors import CORS
 import sqlite3
 import re
 from functools import wraps
+import json
 
 from datetime import datetime, timedelta, timezone
 from database import DTrackDB
@@ -46,18 +47,10 @@ def validatePassword(password: str) -> bool:
     """
     Validate password strength:
     - At least 8 characters long
-    - Contains at least one uppercase letter
-    - Contains at least one lowercase letter
-    - Contains at least one number
     """
     if len(password) < 8:
         return False
-    if not re.search(r"[A-Z]", password):
-        return False
-    if not re.search(r"[a-z]", password):
-        return False
-    if not re.search(r"\d", password):
-        return False
+    
     return True
 
 @app.route('/register', methods=['POST'])
@@ -194,22 +187,8 @@ def logout():
         db.revokeRefreshToken(refreshToken)
     
     return jsonify({'message': 'Logged out successfully'}), 200
-
-# @app.route('/profile', methods=['GET'])
-# @requireAuth
-# def getUserProfile():
-#     user = db.getUserByID(request.user['userid'])
-#     if not user:
-#         return jsonify({'err': 'User not found'}), 404
-        
-#     return jsonify({
-#         'user': {
-#             'id': user['id'],
-#             'username': user['username']
-#         }
-#     }), 200
     
-@app.route('/', methods=['GET','POST', 'DELETE', 'WIPE'])
+@app.route('/', methods=['GET'])
 @requireAuth
 def get_articles():
     conn = db_connection()
@@ -223,16 +202,26 @@ def get_articles():
         ]
         return jsonify(locs)
     
+    conn.close()
+    
+    
+@app.route('/', methods=['POST', 'DELETE', 'WIPE', 'DTARGET'])
+def post_articles():
+    conn = db_connection()
+    cursor = conn.cursor()
+    
     if request.method == "WIPE":
         cursor = conn.executescript("""DELETE FROM location""")
         conn.commit()
         return "Locations Deleted"
     
     if request.method == "POST":
-        n_seq = request.form['seq']
-        n_target = request.form['target']
-        n_x = request.form['x']
-        n_y = request.form['y']
+        print(request.data)
+        data = json.loads(request.data.decode('utf-8'))
+        n_seq = data['seq']
+        n_target = data['target']
+        n_x = data['x']
+        n_y = data['y']
         
         sql = """INSERT INTO location (target, seq, x, y) VALUES (?, ?, ?, ?)"""
         

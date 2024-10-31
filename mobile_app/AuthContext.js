@@ -76,6 +76,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+
+      console.log("hello");
       await SecureStore.deleteItemAsync(TOKEN_KEY);
 
       axios.defaults.headers.common['Authorization'] = '';
@@ -89,7 +91,7 @@ export const AuthProvider = ({ children }) => {
       return { error: true, msg: error}
     }
   }
-
+  
 
   return (
     <AuthContext.Provider value={{ onRegister: register, onLogin: login, onLogout: logout, authState, loading, setLoading}}>

@@ -1,5 +1,5 @@
 // navigation/AuthNavigator.js
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {  View, Text , Button, Alert, StyleSheet, TextInput, TouchableOpacity } from "react-native";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from './AuthContext';
@@ -15,6 +15,8 @@ const LoginScreen = ({ navigation }) => {
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
 
+  const [isValidForm, setIsValidForm] = useState(false);
+  const [disable, setDisable] = useState(true);
 
 
   if (loading) {
@@ -22,7 +24,7 @@ const LoginScreen = ({ navigation }) => {
   }
 
   const login = async () => {
-    
+    setLoading(true);
     const result = await onLogin(userName, password);
     if (result && result.error) {
       Alert.alert(result.msg);
@@ -58,6 +60,11 @@ const RegisterScreen = ({ navigation }) => {
   const [isLoading, setLoading] = useState(false);
   const [userName, setUserName] = useState('');
   const [password, setPassword] = useState('');
+  const [formErrors, setFormErrors] = useState({});
+
+  const [isValidForm, setIsValidForm] = useState(false);
+  
+  
 
   const register = async () => {
     setLoading(true)
@@ -71,13 +78,52 @@ const RegisterScreen = ({ navigation }) => {
     }
   }
 
+  const validateForm = () => {
+    let errors = {};
+
+    // Validate name field
+    if (!userName) {
+      errors.name = 'Name is required.';
+    }
+
+    // Validate password field
+    if (!password) {
+      errors.password = 'Password is required.';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters.';
+    }
+
+    // Set the errors and update form validity
+    setFormErrors(errors);
+    setIsValidForm(Object.keys(errors).length === 0);
+
+  };
+
+  useEffect(() => {
+    
+    validateForm();
+    
+  }, [userName, password]);
+ 
+
+  if (isLoading) {
+    return <SplashScreen text="Registeration in progress"></SplashScreen>
+  }
+
   return (
     <View style={styles.container}>
       
-      <TextInput autoCapitalize="none" style={styles.inputText} placeholder="Username" onChangeText={(text) => setUserName(text)}></TextInput>
-      <TextInput autoCapitalize="none" style={styles.inputText} placeholder="Password" secureTextEntry={true} onChangeText={(text) => setPassword(text)}></TextInput>
-      <TouchableOpacity disabled={isLoading} style = {styles.belowInputButton} title="Register" onPress={register}>
-        <Text style={styles.loginText}>Register</Text>
+      <TextInput autoCapitalize="none" style={styles.inputText} placeholderTextColor={"#1f1e33"} placeholder="Username" onChangeText={(text) => setUserName(text)}></TextInput>
+      <TextInput autoCapitalize="none" style={styles.inputText} placeholderTextColor={"#1f1e33"} placeholder="Password" secureTextEntry={true} onChangeText={(text) => setPassword(text)}></TextInput>
+
+      {Object.values(formErrors).map((fErr, index) => (
+        <Text key={index}>
+          {fErr}
+        </Text>
+      ))}
+
+      <TouchableOpacity disabled={!isValidForm} style = {styles.belowInputButton} title="Register" onPress={register}>
+        <Text  style={styles.loginText}>Register</Text>
       </TouchableOpacity>
         
       {/* <Button title="Back" onPress={() => navigation.navigate('Login')} /> */}
