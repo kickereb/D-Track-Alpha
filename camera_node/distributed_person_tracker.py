@@ -108,7 +108,7 @@ class DistributedPersonTrackerStateMachine:
     """
     
     def __init__(self, node_id: str, ip: str, routing_table_manager,
-                 camera_matrix: np.ndarray, dist_coeffs: np.ndarray,
+                 camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec,
                  cycle_time_ms: int = 2500, collection_timeout_ms: int = 2000):
         """
         Initialise the state machine
@@ -159,7 +159,7 @@ class DistributedPersonTrackerStateMachine:
             person_detector=YOLOv11NCNNPersonDetector(),
             coordinate_transformer=LennysCustomCoordinateTransformer()
         )
-        self.detection_manager.initialise(camera_matrix, dist_coeffs)
+        self.detection_manager.initialise(camera_matrix, dist_coeffs, rvec, tvec)
 
         # Initialise global tracker
         self.global_tracker = GlobalTracker()

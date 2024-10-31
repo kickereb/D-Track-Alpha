@@ -40,6 +40,13 @@ def load_calibration(camera_id: str = None):
         # Extract distortion coefficients
         dist_data = calib_data['intrinsic']['distortion_vector']['data']
         dist_coeffs = np.array(dist_data)
+
+        # Extract extrinsic parameters
+        rvec_data = calib_data['extrinsic']['rvec']['data']
+        rvec = np.array(rvec_data)
+        
+        tvec_data = calib_data['extrinsic']['tvec']['data']
+        tvec = np.array(tvec_data)
         
         # Validate data
         if camera_matrix.shape != (3, 3):
@@ -52,7 +59,7 @@ def load_calibration(camera_id: str = None):
                              calib_data['accuracy']['mean_reprojection_error'],
                              calib_data['accuracy']['total_points'])
         
-        return camera_matrix, dist_coeffs
+        return camera_matrix, dist_coeffs, rvec, tvec
         
     except FileNotFoundError:
         log(f"Calibration file not found: {filename}")
@@ -129,8 +136,8 @@ def print_calibration_info(camera_matrix: np.ndarray,
 
 def main(node_id, ip, port, neighbors):
     # Create and start node
-    camera_matrix, dist_coeffs = load_calibration(node_id)
-    node = CameraNode(node_id, ip, port, neighbors, camera_matrix, dist_coeffs)
+    camera_matrix, dist_coeffs, rvec, tvec = load_calibration(node_id)
+    node = CameraNode(node_id, ip, port, neighbors, camera_matrix, dist_coeffs, rvec, tvec)
     
     try:
         node.start()

@@ -11,11 +11,13 @@ from syncronisation_manager import SyncManager
 from utils.logger import log
 
 class CameraNode:
-    def __init__(self, node_id, ip, port, neighbors, camera_matrix: np.ndarray, dist_coeffs: np.ndarray):
+    def __init__(self, node_id, ip, port, neighbors, camera_matrix: np.ndarray, dist_coeffs: np.ndarray, rvec, tvec):
         self.node_id = node_id
         self.ip = ip
         self.camera_matrix = camera_matrix
         self.dist_coeffs = dist_coeffs
+        self.rvec = rvec
+        self.tvec = tvec
         # self.routing_table_manager = RoutingTableManager(node_id, ip, port, neighbors)\
         # self.discovery_service = DiscoveryService(node_id, ip, port)
         neighbors[node_id] = (ip, port, 0)
@@ -54,7 +56,9 @@ class CameraNode:
                                                                                 self.ip, 
                                                                                 self.routing_table_manager, 
                                                                                 self.camera_matrix, 
-                                                                                self.dist_coeffs)
+                                                                                self.dist_coeffs,
+                                                                                self.rvec,
+                                                                                self.tvec)
         
         self._wait_until_rounded_timestamp()
 

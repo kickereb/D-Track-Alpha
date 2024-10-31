@@ -233,6 +233,8 @@ class LennysCustomCoordinateTransformer(CoordinateTransformerInterface):
     def __init__(self):
         self.camera_matrix = None
         self.dist_coeffs = None
+        self.rvec = None
+        self.tvec = None
         self.view_calibration = None
         self.GRID_SIZE = (1000, 1000)  # Define grid size as class constant, adjust as needed
         
