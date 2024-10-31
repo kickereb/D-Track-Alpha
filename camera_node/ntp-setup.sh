@@ -9,15 +9,8 @@ fi
 # Function to install NTP if not present
 install_ntp() {
     if ! command -v ntpd &> /dev/null; then
-        echo "Installing NTP..."
-        if command -v apt-get &> /dev/null; then
-            apt-get update && apt-get install -y ntp
-        elif command -v yum &> /dev/null; then
-            yum install -y ntp
-        else
-            echo "Unsupported package manager. Please install NTP manually."
-            exit 1
-        fi
+        echo "Error: NTP is not installed. In an offline environment, please install NTP manually using your local package repository."
+        exit 1
     fi
 }
 
@@ -28,51 +21,91 @@ backup_config() {
     fi
 }
 
+# Function to get local network address range
+get_local_network() {
+    local ip_addr=$(ip route get 1 2>/dev/null | awk '{print $7;exit}')
+    local subnet=$(ip -o -f inet addr show | grep "$ip_addr" | awk '{print $4}')
+    echo "$subnet"
+}
+
 # Function to configure master node (stratum 0)
 configure_master() {
+    local network=$1
+    
     cat > /etc/ntp.conf << EOL
 # Master NTP Server Configuration (Stratum 0)
-restrict default kod nomodify notrap nopeer noquery
-restrict -6 default kod nomodify notrap nopeer noquery
+# Restrict access to local network only
+restrict default ignore
+restrict -6 default ignore
 restrict 127.0.0.1
 restrict -6 ::1
+restrict ${network} mask 255.255.255.0 nomodify notrap
 
 # Local clock as reference
-server 127.127.1.0
+server 127.127.1.0 prefer
 fudge 127.127.1.0 stratum 0
 
 # Drift file
 driftfile /var/lib/ntp/drift
 
+# Statistics logging
+statsdir /var/log/ntpstats/
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+
 # Logging
 logfile /var/log/ntp.log
+
+# Disable all pools and default servers
+disable pool
+disable server
 EOL
+
+    # Create stats directory if it doesn't exist
+    mkdir -p /var/log/ntpstats/
+    chmod 755 /var/log/ntpstats/
 }
 
 # Function to configure client node (stratum 1)
 configure_client() {
     local master_ip=$1
-    if [ -z "$master_ip" ]; then
-        echo "Error: Master IP address is required for client configuration"
-        exit 1
-    fi
-
+    local network=$2
+    
     cat > /etc/ntp.conf << EOL
 # Client NTP Configuration (Stratum 1)
-restrict default kod nomodify notrap nopeer noquery
-restrict -6 default kod nomodify notrap nopeer noquery
+# Restrict access to local network only
+restrict default ignore
+restrict -6 default ignore
 restrict 127.0.0.1
 restrict -6 ::1
+restrict ${network} mask 255.255.255.0 nomodify notrap
 
-# Master server
+# Master server (local network only)
 server $master_ip prefer iburst
 
 # Drift file
 driftfile /var/lib/ntp/drift
 
+# Statistics logging
+statsdir /var/log/ntpstats/
+statistics loopstats peerstats clockstats
+filegen loopstats file loopstats type day enable
+filegen peerstats file peerstats type day enable
+filegen clockstats file clockstats type day enable
+
 # Logging
 logfile /var/log/ntp.log
+
+# Disable all pools and default servers
+disable pool
+disable server
 EOL
+
+    # Create stats directory if it doesn't exist
+    mkdir -p /var/log/ntpstats/
+    chmod 755 /var/log/ntpstats/
 }
 
 # Parse command line arguments
@@ -101,17 +134,28 @@ done
 install_ntp
 backup_config
 
+# Get local network information
+LOCAL_NETWORK=$(get_local_network)
+if [ -z "$LOCAL_NETWORK" ]; then
+    echo "Error: Could not determine local network address"
+    exit 1
+fi
+
 if [ "$MASTER_FLAG" = true ]; then
     echo "Configuring as master node (stratum 0)..."
-    configure_master
+    configure_master "$LOCAL_NETWORK"
 else
     if [ -z "$MASTER_IP" ]; then
         echo "Error: Master IP address (-i) is required for client configuration"
         exit 1
     fi
     echo "Configuring as client node (stratum 1)..."
-    configure_client "$MASTER_IP"
+    configure_client "$MASTER_IP" "$LOCAL_NETWORK"
 fi
+
+# Create and set permissions for log file
+touch /var/log/ntp.log
+chmod 640 /var/log/ntp.log
 
 # Restart NTP service
 if systemctl is-active --quiet ntp; then
@@ -123,3 +167,12 @@ else
 fi
 
 echo "NTP configuration completed successfully!"
+
+# Display status information
+echo -e "\nChecking NTP status..."
+if command -v ntpq &> /dev/null; then
+    echo -e "\nPeer status:"
+    ntpq -p
+    echo -e "\nNTP synchronization status:"
+    ntpq -c rv
+fi
