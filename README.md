@@ -70,7 +70,37 @@ pip install matplotlib numpy scipy natsort
    python tracking_script.py
    ```
 
-## System Components
+## System Design
+
+            ┌───────────────────────────────────────────────────────┐
+            │                   Raspberry Pi Nodes                  │
+            │  ┌───────────┐       ┌───────────┐       ┌───────────┐│
+            │  │ YOLOv4    │       │ YOLOv4    │       │ YOLOv4    ││
+            │  │ Detection │       │ Detection │       │ Detection ││
+            │  └───────────┘       └───────────┘       └───────────┘│
+            │       │                 │                 │           │
+            │ ┌─────▼─────┐     ┌────▼─────┐     ┌─────▼─────┐     │
+            │ │ Transform │     │ Transform │     │ Transform │     │
+            │ │ to Global │     │ to Global │     │ to Global │     │
+            │ │ Coordinates│    │ Coordinates│    │ Coordinates│    │
+            │ └────────────┘     └────────────┘   └────────────┘    │
+            └───────────────────────────────────────────────────────┘
+                           │               │               │
+                           └───────────────▼───────────────┘
+                                     Aggregation Hub
+                               ┌──────────────────────────┐
+                               │   Global DBSCAN Clustering │
+                               │   Unique ID Assignment    │
+                               │    Kalman Filter Tracking │
+                               └──────────────────────────┘
+                                         │
+                                         ▼
+                            ┌───────────────────────────┐
+                            │    User Interface         │
+                            │    Real-Time Monitoring   │
+                            │    Alerts & Notifications │
+                            └───────────────────────────┘
+
 
 ### Edge Detection and Tracking
 
