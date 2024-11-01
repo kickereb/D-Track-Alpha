@@ -45,7 +45,7 @@ def plot_trajectories_from_folder(folder_path, num_frames_to_analyze):
                 trajectories[nearest_idx].append(pos2)
             else:
                 trajectories.append([pos2])
-
+    np.save(trajectories, 'trajectories.npy')
     for traj in trajectories:
         traj = np.array(traj)
         plt.plot(traj[:, 0], traj[:, 1], marker='o')
