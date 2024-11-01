@@ -72,34 +72,47 @@ pip install matplotlib numpy scipy natsort
 
 ## System Design
 
-            ┌───────────────────────────────────────────────────────┐
-            │                   Raspberry Pi Nodes                  │
-            │  ┌───────────┐       ┌───────────┐       ┌───────────┐│
-            │  │ YOLOv4    │       │ YOLOv4    │       │ YOLOv4    ││
-            │  │ Detection │       │ Detection │       │ Detection ││
-            │  └───────────┘       └───────────┘       └───────────┘│
-            │       │                 │                 │           │
-            │ ┌─────▼─────┐     ┌────▼─────┐     ┌─────▼─────┐     │
-            │ │ Transform │     │ Transform │     │ Transform │     │
-            │ │ to Global │     │ to Global │     │ to Global │     │
-            │ │ Coordinates│    │ Coordinates│    │ Coordinates│    │
-            │ └────────────┘     └────────────┘   └────────────┘    │
-            └───────────────────────────────────────────────────────┘
-                           │               │               │
-                           └───────────────▼───────────────┘
-                                     Aggregation Hub
-                               ┌──────────────────────────┐
-                               │   Global DBSCAN Clustering │
-                               │   Unique ID Assignment    │
-                               │    Kalman Filter Tracking │
-                               └──────────────────────────┘
-                                         │
-                                         ▼
-                            ┌───────────────────────────┐
-                            │    User Interface         │
-                            │    Real-Time Monitoring   │
-                            │    Alerts & Notifications │
-                            └───────────────────────────┘
++--------------------------------------------------------+
+|                    D-Track Alpha System                |
++--------------------------------------------------------+
+|                                                        |
+|  +-----------------------------------------------+     |
+|  |               Raspberry Pi Nodes              |     |
+|  +-----------------------------------------------+     |
+|                                                        |
+|   +------------------+    +------------------+    +------------------+  
+|   | Raspberry Pi #1  |    | Raspberry Pi #2  |    | Raspberry Pi #3  |
+|   +------------------+    +------------------+    +------------------+
+|   |  - YOLOv4        |    |  - YOLOv4        |    |  - YOLOv4        |
+|   |  - April Tag     |    |  - April Tag     |    |  - April Tag     |
+|   |    Calibration   |    |    Calibration   |    |    Calibration   |
+|   |  - Transform to  |    |  - Transform to  |    |  - Transform to  |
+|   |    Global Coords |    |    Global Coords |    |    Global Coords |
+|   +------------------+    +------------------+    +------------------+
+|             |                     |                     |             
+|             +---------------------+---------------------+             
+|                               |                                       
++-------------------------------v----------------------------------------+
+|                         Aggregation Hub                               |
++-----------------------------------------------------------------------+
+|                                                                       |
+|  - DBSCAN Clustering for Duplicate Resolution                         |
+|  - Unique ID Assignment for Each Person                               |
+|  - Kalman Filter for Frame-by-Frame Tracking                          |
+|                                                                       |
++-----------------------------------------------------------------------+
+                                |
+                                v
++-----------------------------------------------------------------------+
+|                           Web Application                             |
++-----------------------------------------------------------------------+
+|                                                                       |
+|  - Real-Time Visualization of Person Trajectories                     |
+|  - Alerts & Notifications for Specified Events                        |
+|  - Data Logging for Historical Analysis                               |
+|                                                                       |
++-----------------------------------------------------------------------+
+
 
 
 ### Edge Detection and Tracking
