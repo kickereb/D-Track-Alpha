@@ -1,7 +1,3 @@
-Here's an updated README that closely follows the original document's structure, with references to relevant content from the PDF.
-
----
-
 # D-Track Alpha: Mobile and Wireless Systems
 
 <pre>
