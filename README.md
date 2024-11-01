@@ -71,7 +71,7 @@ pip install matplotlib numpy scipy natsort
    ```
 
 ## System Design
-
+<pre>
 +--------------------------------------------------------+
 |                    D-Track Alpha System                |
 +--------------------------------------------------------+
@@ -113,7 +113,7 @@ pip install matplotlib numpy scipy natsort
 |                                                                       |
 +-----------------------------------------------------------------------+
 
-
+</pre>
 
 ### Edge Detection and Tracking
 
