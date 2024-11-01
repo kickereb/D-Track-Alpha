@@ -10,13 +10,12 @@ Here's a README file for a GitHub repository based on this project:
 
 # Multi-Frame Trajectory Tracking with Bounding Box Midpoints
 
-This project implements a multi-frame trajectory tracking system for visual objects detected in consecutive frames. The system processes multiple JSON files in a specified folder, where each file represents a frame. The tracking is done without unique identifiers, relying on spatial proximity between bounding box midpoints in consecutive frames.
+This project implements a multi-frame trajectory tracking system for visual objects detected in consecutive frames. The system processes multiple JSON files in a specified folder, where each file represents a frame. The tracking is done without unique identifiers, relying on spatial proximity between identified targets in consecutive frames. Later on, a kinematic based tagging algorithm is also implemented.
+Running on muultiple edge devices, D-Track can successfully identify and track multiple objectives across a non-overlapping field of view (FOV).
 
 ## Features
 
 - **Trajectory Tracking Across Multiple Frames**: Tracks objects across consecutive frames using nearest neighbor matching.
-- **Bounding Box Midpoints**: Tracks are based on the midpoint of the lower row of bounding boxes.
-- **Customizable Frame Analysis**: Specify the number of frames to analyze for flexible and targeted analysis.
 - **Trajectory Visualization**: Generates a visual plot displaying trajectories of detected objects across frames.
 
 ## Getting Started
