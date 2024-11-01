@@ -1,6 +1,10 @@
 # D-Track-Alpha
 Mobile and Wireless Systems D-Track Alpha
 
+- Tom Zhu			a1770422
+- Lennox Avdiu		a1774765
+- Evam Kaushik		a1909167
+
 ## First steps
 Please run `./setup_pi_camera.sh` on a fresh raspberry pi to properly setup the pi cameras. This will reboot the pis on completetion.
 
@@ -8,7 +12,6 @@ Here's a README file for a GitHub repository based on this project:
 
 ---
 
-# Multi-Frame Trajectory Tracking with Bounding Box Midpoints
 
 This project implements a multi-frame trajectory tracking system for visual objects detected in consecutive frames. The system processes multiple JSON files in a specified folder, where each file represents a frame. The tracking is done without unique identifiers, relying on spatial proximity between identified targets in consecutive frames. Later on, a kinematic based tagging algorithm is also implemented.
 Running on muultiple edge devices, D-Track can successfully identify and track multiple objectives across a non-overlapping field of view (FOV).
