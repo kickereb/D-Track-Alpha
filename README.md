@@ -1,31 +1,43 @@
-# D-Track-Alpha
-Mobile and Wireless Systems D-Track Alpha
-
-- Tom Zhu			a1770422
-- Lennox Avdiu		a1774765
-- Evam Kaushik		a1909167
-
-## First steps
-Please run `./setup_pi_camera.sh` on a fresh raspberry pi to properly setup the pi cameras. This will reboot the pis on completetion.
-
-Here's a README file for a GitHub repository based on this project:
+Here's an updated README that closely follows the original document's structure, with references to relevant content from the PDF.
 
 ---
 
+# D-Track Alpha: Mobile and Wireless Systems
 
-This project implements a multi-frame trajectory tracking system for visual objects detected in consecutive frames. The system processes multiple JSON files in a specified folder, where each file represents a frame. The tracking is done without unique identifiers, relying on spatial proximity between identified targets in consecutive frames. Later on, a kinematic based tagging algorithm is also implemented.
-Running on muultiple edge devices, D-Track can successfully identify and track multiple objectives across a non-overlapping field of view (FOV).
+<pre>
+Team Members:
+Tom Zhu         a1770422
+Lennox Avdiu    a1774765
+Evam Kaushik    a1909167
+</pre>
 
-## Features
+D-Track Alpha is a distributed, multi-object tracking system designed to leverage multiple camera-equipped Raspberry Pi devices to monitor individuals across non-overlapping fields of view in indoor environments. This system enables real-time trajectory tracking and enhances situational awareness, offering applications in security monitoring, space management, and behavioral analysis.
 
-- **Trajectory Tracking Across Multiple Frames**: Tracks objects across consecutive frames using nearest neighbor matching.
-- **Trajectory Visualization**: Generates a visual plot displaying trajectories of detected objects across frames.
+---
 
-## Getting Started
+## Project Overview
+
+This project focuses on a low-cost, real-time, scalable solution for tracking objects (people) across non-overlapping fields of view (FoV) using a distributed network of camera-equipped Raspberry Pis. The main objective is to track individuals as they move across different camera views, reconstruct trajectories, and maintain identity consistency through advanced data fusion techniques. 
+
+### Key Elements
+
+1. **Pi Camera Setup**: Each Raspberry Pi device is equipped with a camera module to detect and track individuals within its FoV.
+2. **Field of View Management**: D-Track Alpha manages non-overlapping FoVs across multiple cameras, effectively tracking individuals through sequential data association.
+3. **Centralized Processing**: Each device sends data to a backend server for real-time processing, fusion, and visualization of trajectories across the monitored space.
+
+## Setup Instructions
+
+To begin, please set up each Raspberry Pi camera by running the following script on a fresh Raspberry Pi:
+
+```bash
+./setup_pi_camera.sh
+```
+
+This will install necessary dependencies and configure the camera. The script will automatically reboot each Raspberry Pi upon completion.
 
 ### Prerequisites
 
-Ensure you have the following packages installed:
+Ensure you have the following Python packages installed for trajectory visualization and data processing:
 
 - `matplotlib`
 - `numpy`
@@ -38,72 +50,53 @@ Install packages with:
 pip install matplotlib numpy scipy natsort
 ```
 
-### Folder Structure
-
-Organize your JSON files in a folder. Each JSON file should contain data in the following structure:
-
-```json
-[
-    {
-        "views": [
-            {"xmax": ..., "xmin": ..., "ymax": ..., "ymin": ...},
-            ...
-        ]
-    },
-    ...
-]
-```
-
-Each `views` entry represents a detected object’s bounding box in that frame.
-
-### Usage
+## Usage
 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/multi-frame-trajectory-tracking.git
-   cd multi-frame-trajectory-tracking
+   git clone https://github.com/your-username/D-Track-Alpha.git
+   cd D-Track-Alpha
    ```
 
-2. Set the `folder_path` variable in `tracking_script.py` to the path of your JSON folder.
+2. Set the `folder_path` variable in `tracking_script.py` to the directory containing the JSON files.
 
-3. Set the `num_frames_to_analyze` variable to the desired number of frames to analyze. For example:
+3. Set `num_frames_to_analyze` to the desired number of frames to process. For example:
 
    ```python
-   folder_path = 'path_to_folder_containing_json_files'
+   folder_path = 'path_to_json_folder'
    num_frames_to_analyze = 5
    ```
 
-4. Run the script to generate a trajectory plot:
+4. Run the tracking script to visualize trajectories:
 
    ```bash
    python tracking_script.py
    ```
 
-## Code Overview
+## System Components
 
-- **calculate_lower_midpoint(view)**: Calculates the midpoint of the lower row of the bounding box for each detected object.
-- **get_positions_from_frame(file_path)**: Extracts the average midpoint for each object in a frame.
-- **plot_trajectories_from_folder(folder_path, num_frames_to_analyze)**: Tracks and visualizes object trajectories across consecutive frames.
+### Edge Detection and Tracking
 
-## Example
+D-Track Alpha employs each Raspberry Pi as an edge device for detecting and tracking individuals in its FoV. Without using unique identifiers, the system relies on spatial proximity and movement patterns to link individuals across frames and cameras. Each device captures bounding boxes of detected objects and calculates the midpoint of each box’s lower edge for tracking consistency.
 
-Here’s an example plot generated by the script, showing the movement of objects across frames with color-coded trajectories:
+### Backend Processing
 
-![Trajectory Plot](example_plot.png)
+The backend server collects data from each Raspberry Pi, applies data fusion techniques, and reconstructs trajectories across non-overlapping views. Data association is handled using nearest-neighbor matching and Kalman filters, which smooth transitions and manage occlusions across frames.
 
-## Contributing
+### Mobile and Web Applications
 
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature-name`).
-3. Commit your changes (`git commit -m 'Add feature'`).
-4. Push to the branch (`git push origin feature-name`).
-5. Create a new Pull Request.
+- **Mobile Interface**: Allows for live monitoring, system configuration, and receiving alerts.
+- **Web Dashboard**: Provides administrators with visualization of trajectories, analysis of space utilization, and control over individual camera settings.
 
-## License
+## Tracking and Visualization
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+The core tracking algorithm utilizes nearest-neighbor matching to associate detections between consecutive frames. Each object’s trajectory is updated based on its spatial proximity to detections in the following frame. Visualizations show paths across frames, representing the system's capacity to track individuals seamlessly across non-overlapping cameras.
 
----
+## Future Work
 
-Let me know if you need any additional sections!
+The D-Track Alpha system could be extended with the following features:
+
+1. **Increased Camera Coverage**: Supporting a larger network of cameras for wider area tracking.
+2. **Enhanced Mobile Notifications**: Real-time alerts for specific events, such as unauthorized entry or crossing into restricted zones.
+3. **Machine Learning for Data Fusion**: Using advanced machine learning models to improve the accuracy and efficiency of the tracking system.
