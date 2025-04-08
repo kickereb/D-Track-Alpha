@@ -15,6 +15,8 @@ D-Track Alpha is a distributed, multi-object tracking system designed to leverag
 
 This project focuses on a low-cost, real-time, scalable solution for tracking objects (people) across non-overlapping fields of view (FoV) using a distributed network of camera-equipped Raspberry Pis. The main objective is to track individuals as they move across different camera views, reconstruct trajectories, and maintain identity consistency through advanced data fusion techniques. 
 
+A demonstration on YouTube can be found [here](https://youtu.be/s29tGAYzlP0)
+
 ### Key Elements
 
 1. **Pi Camera Setup**: Each Raspberry Pi device is equipped with a camera module to detect and track individuals within its FoV.
